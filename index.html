@@ -257,6 +257,13 @@
                 coverflowEffect: { rotate: 50, stretch: 0, depth: 100, modifier: 1, slideShadows: true },
             });
 
+            // NEW: 슬라이드 클릭/터치 시 다음으로 넘기는 기능 추가
+            swiper.el.addEventListener('click', () => {
+                if (swiper && swiper.slides.length > 1) {
+                    swiper.slideNext();
+                }
+            });
+
             if (firebaseConfig.apiKey === "DEMO_KEY") {
                 const dummyScores = generateDummyData();
                 updateLeaderboardUI(dummyScores);
@@ -278,23 +285,33 @@
                 return acc;
             }, {});
 
-            if (Object.keys(scoresByGrade).length === 0) {
+            const gradeCount = Object.keys(scoresByGrade).length;
+
+            if (gradeCount === 0) {
                 leaderboardWrapper.innerHTML = `<div class="swiper-slide flex items-center justify-center"><div class="text-center text-gray-500 text-xl">아직 등록된 점수 데이터가 없습니다.</div></div>`;
+                swiper.autoplay.stop();
                 swiper.update();
                 return;
             }
             
-            if (swiper.loop) swiper.loopDestroy();
+            // NEW: 빈 슬라이드 오류를 막는 더 안정적인 업데이트 로직
+            swiper.loopDestroy();
             swiper.removeAllSlides();
 
             const slides = Object.keys(scoresByGrade).sort((a, b) => a - b).map(grade => createGradeSlide(grade, scoresByGrade[grade]));
             swiper.appendSlide(slides);
             
-            if (swiper.loop) swiper.loopCreate();
             swiper.update(); 
             
-            if (swiper.slides.length > 1 && !swiper.autoplay.running) {
-                swiper.autoplay.start();
+            if (gradeCount > 1) {
+                swiper.loopCreate();
+                if (!swiper.autoplay.running) {
+                    swiper.autoplay.start();
+                }
+                 // 업데이트 후 첫번째 슬라이드로 이동하여 빈 화면 방지
+                swiper.slideToLoop(0, 0);
+            } else {
+                swiper.autoplay.stop();
             }
         }
         
@@ -348,4 +365,5 @@
     </script>
 </body>
 </html>
+
 
