@@ -289,7 +289,7 @@
 
             if (gradeCount === 0) {
                 leaderboardWrapper.innerHTML = `<div class="swiper-slide flex items-center justify-center"><div class="text-center text-gray-500 text-xl">아직 등록된 점수 데이터가 없습니다.</div></div>`;
-                swiper.autoplay.stop();
+                if(swiper.autoplay.running) swiper.autoplay.stop();
                 swiper.update();
                 return;
             }
@@ -301,17 +301,18 @@
             const slides = Object.keys(scoresByGrade).sort((a, b) => a - b).map(grade => createGradeSlide(grade, scoresByGrade[grade]));
             swiper.appendSlide(slides);
             
-            swiper.update(); 
-            
             if (gradeCount > 1) {
-                swiper.loopCreate();
+                swiper.loopCreate(); // 루프를 먼저 재구성
+                swiper.update(); // 그 다음에 전체 상태 업데이트
+                
                 if (!swiper.autoplay.running) {
                     swiper.autoplay.start();
                 }
-                 // 업데이트 후 첫번째 슬라이드로 이동하여 빈 화면 방지
-                swiper.slideToLoop(0, 0);
+                 // 업데이트 후 첫번째 슬라이드로 즉시 이동하여 빈 화면 방지
+                swiper.slideToLoop(0, 0); 
             } else {
-                swiper.autoplay.stop();
+                swiper.update();
+                if(swiper.autoplay.running) swiper.autoplay.stop();
             }
         }
         
@@ -365,5 +366,6 @@
     </script>
 </body>
 </html>
+
 
 
