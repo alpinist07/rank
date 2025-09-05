@@ -1,794 +1,380 @@
-<script>
-        // 전역 변수 선언
-        let studentsData = {
-            1: [
-                {name: '김민수', school: '행복초등학교', class: 1, score: 95, timestamp: new Date('2024-01-01 09:00')},
-                {name: '이지은', school: '꿈나무초등학교', class: 2, score: 92, timestamp: new Date('2024-01-01 09:05')},
-                {name: '박준호', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최서연', school: '행복초등학교', class: 3, score: 85, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정하늘', school: '꿈나무초등학교', class: 2, score: 82, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            2: [
-                {name: '김영희', school: '바른초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '박철수', school: '새싹초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이미나', school: '행복초등학교', class: 3, score: 90, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최동현', school: '꿈나무초등학교', class: 1, score: 87, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정수민', school: '바른초등학교', class: 2, score: 84, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            3: [
-                {name: '홍길동', school: '새싹초등학교', class: 1, score: 100, timestamp: new Date('2024-01-01 09:00')},
-                {name: '김서진', school: '행복초등학교', class: 2, score: 96, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이도윤', school: '꿈나무초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '박소영', school: '바른초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '최준혁', school: '새싹초등학교', class: 2, score: 86, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            4: [
-                {name: '강지우', school: '꿈나무초등학교', class: 1, score: 97, timestamp: new Date('2024-01-01 09:00')},
-                {name: '윤서은', school: '바른초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '조민준', school: '행복초등학교', class: 3, score: 91, timestamp: new Date('2024-01-01 09:10')},
-                {name: '한지민', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:15')},
-                {name: '오승현', school: '꿈나무초등학교', class: 2, score: 85, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            5: [
-                {name: '신유진', school: '바른초등학교', class: 1, score: 99, timestamp: new Date('2024-01-01 09:00')},
-                {name: '장민호', school: '새싹초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '임수아', school: '행복초등학교', class: 3, score: 92, timestamp: new Date('2024-01-01 09:10')},
-                {name: '송재현', school: '꿈나무초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '배하영', school: '바른초등학교', class: 2, score: 87, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            6: [
-                {name: '노태민', school: '행복초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '서지안', school: '꿈나무초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '고은별', school: '바른초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '문준서', school: '새싹초등학교', class: 1, score: 90, timestamp: new Date('2024-01-01 09:15')},
-                {name: '양시우', school: '행복초등학교', class: 2, score: 88, timestamp: new Date('2024-01-01 09:20')}
-            ]
-        };
-
-        let currentSlide = 0;
-        let slideInterval;
-        let firebaseConnected = false;
-        let firestoreListeners = {};
-
-        // Firebase 초기화 대기
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = () => {
-                    if (window.firebaseDB && window.addDoc && window.collection) {
-                        firebaseConnected = true;
-                        console.log('✅ Firebase 연결 성공! 실시간 데이터베이스 사용');
-                        resolve(true);
-                    } else {
-                        setTimeout(checkFirebase, 100);
-                    }
-                };
-                checkFirebase();
-                
-                // 5초 후 타임아웃
-                setTimeout(() => {
-                    if (!firebaseConnected) {
-                        console.log('⚠️ Firebase 연결 실패! 더미 데이터로 동작');
-                        resolve(false);
-                    }
-                }, 5000);
-            });
-        }
-
-        // Firestore 실시간 리스너 설정
-        function setupFirestoreListeners() {
-            if (!firebaseConnected) return;
-            
-            try {
-                for (let grade = 1; grade <= 6; grade++) {
-                    const q = window.query(
-                        window.collection(window.firebaseDB, 'students'),
-                        window.orderBy('score', 'desc'),
-                        window.orderBy('timestamp', 'asc')
-                    );
-
-                    firestoreListeners[grade] = window.onSnapshot(q, (snapshot) => {
-                        const gradeStudents = [];
-                        snapshot.forEach((doc) => {
-                            const data = doc.data();
-                            if (data.grade === grade) {
-                                gradeStudents.push({
-                                    id: doc.id,
-                                    ...data,
-                                    timestamp: data.timestamp?.toDate() || new Date()
-                                });
-                            }
-                        });
-                        
-                        // Firebase 데이터로 업데이트
-                        studentsData[grade] = gradeStudents;
-                        
-                        // 리더보드가 열려있으면 즉시 업데이트
-                        if (document.getElementById('leaderboardModal').style.display === 'block') {
-                            updateLeaderboard(grade);
-                        }
-                    }, (error) => {
-                        console.error(`Firebase 리스너 오류 (${grade}학년):`, error);
-                    });
-                }
-            } catch (error) {
-                console.error('Firebase 리스너 설정 오류:', error);
-                firebaseConnected = false;
-            }
-        }
-
-        // 폼 제출 처리
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const studentData = {
-                name: formData.get('name'),
-                school: formData.get('school'),
-                grade: parseInt(formData.get('grade')),
-                class: parseInt(formData.get('class')),
-                score: parseInt(formData.get('score')),
-                timestamp: firebaseConnected ? window.serverTimestamp() : new Date()
-            };
-            
-            try {
-                if (firebaseConnected && window.firebaseDB) {
-                    // Firebase에 저장
-                    const docRef = await window.addDoc(
-                        window.collection(window.firebaseDB, 'students'), 
-                        studentData
-                    );
-                    console.log('🔥 Firebase에 저장 완료:', docRef.id);
-                } else {
-                    // 더미 데이터에 추가
-                    if (!studentsData[studentData.grade]) {
-                        studentsData[studentData.grade] = [];
-                    }
-                    studentsData[studentData.grade].push({
-                        ...studentData,
-                        timestamp: new Date()
-                    });
-                    console.log('📝 더미 데이터에 추가:', studentData);
-                }
-                
-                // 성공 메시지 표시
-                const successMessage = document.getElementById('successMessage');
-                successMessage.style.display = 'block';
-                setTimeout(() => {
-                    successMessage.style.display<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수학 축전 리더보드 🏆</title>
+    <title>실시간 수학 점수 리더보드</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Swiper JS CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <!-- Google Fonts: Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* 기본 폰트 및 배경 스타일 */
         body {
-            font-family: 'Comic Sans MS', cursive, sans-serif;
-            background: linear-gradient(135deg, #e3f2fd 0%, #f8bbd9 100%);
-            background-image: 
-                linear-gradient(rgba(0,0,0,.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px);
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0f4f8; /* 연한 하늘색 배경 */
+            background-image:
+                linear-gradient(rgba(255, 255, 255, .5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, .5) 1px, transparent 1px);
             background-size: 20px 20px;
-            min-height: 100vh;
-            padding: 20px;
         }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            border: 3px solid #ff6b6b;
-        }
-
-        .title {
-            text-align: center;
-            color: #ff6b6b;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #666;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            color: #333;
-            font-weight: bold;
-            margin-bottom: 8px;
-            font-size: 1.1em;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 1.1em;
-            transition: all 0.3s ease;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #ff6b6b;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        button {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .submit-btn {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            color: white;
-        }
-
-        .leaderboard-btn {
-            background: linear-gradient(45deg, #feca57, #ff9ff3);
-            color: white;
-        }
-
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        /* 모달 스타일 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            position: relative;
-            width: 90%;
-            height: 90%;
-            margin: 5% auto;
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .modal-header {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            font-size: 1.5em;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .close-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        /* 슬라이드 컨테이너 */
-        .slides-container {
-            position: relative;
-            height: calc(100% - 80px);
-            overflow: hidden;
-        }
-
-        .slide {
-            display: none;
-            height: 100%;
-            padding: 20px;
-            background: linear-gradient(135deg, #e3f2fd 0%, #f8bbd9 100%);
-            background-image: 
-                linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
-            background-size: 15px 15px;
-        }
-
-        .slide.active {
-            display: block;
-            animation: slideIn 0.5s ease-in-out;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(50px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .grade-title {
-            text-align: center;
-            font-size: 2.5em;
-            color: #ff6b6b;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .leaderboard {
-            max-height: calc(100% - 100px);
-            overflow-y: auto;
-        }
-
-        .rank-item {
-            background: rgba(255,255,255,0.9);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            animation: slideUp 0.5s ease-out;
-        }
-
+        
+        /* 순위 변경 애니메이션 */
         @keyframes slideUp {
             from {
+                transform: translateY(50%);
                 opacity: 0;
-                transform: translateY(20px);
             }
             to {
-                opacity: 1;
                 transform: translateY(0);
+                opacity: 1;
             }
         }
-
-        .rank-number {
-            font-size: 1.5em;
-            font-weight: bold;
-            width: 40px;
-            text-align: center;
+        
+        .animate-slide-up {
+            animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
-        .medal {
-            font-size: 1.8em;
+        /* Swiper 커스텀 스타일 */
+        .swiper-pagination-bullet-active {
+            background-color: #3b82f6 !important; /* 파란색 */
         }
-
-        .student-info {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .swiper-button-next, .swiper-button-prev {
+            color: #3b82f6 !important; /* 파란색 */
         }
-
-        .student-details {
-            font-weight: bold;
-        }
-
-        .score {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #ff6b6b;
-        }
-
-        /* 네비게이션 화살표 */
-        .nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.8);
-            border: none;
-            font-size: 2em;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .nav-arrow:hover {
-            background: white;
-            transform: translateY(-50%) scale(1.1);
-        }
-
-        .nav-arrow.left {
-            left: 20px;
-        }
-
-        .nav-arrow.right {
-            right: 20px;
-        }
-
-        /* 슬라이드 인디케이터 */
-        .slide-indicators {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-        }
-
-        .indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .indicator.active {
-            background: white;
-            transform: scale(1.3);
-        }
-
-        /* 성공 메시지 */
-        .success-message {
-            display: none;
-            background: linear-gradient(45deg, #27ae60, #2ecc71);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-top: 20px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        /* 스크롤바 숨기기 */
+        .swiper-wrapper {
+            overflow: hidden;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1 class="title">🏆 수학 축전 리더보드 🏆</h1>
-        <p class="subtitle">점수를 입력하고 친구들과 경쟁해보세요!</p>
-        
-        <form id="scoreForm">
-            <div class="form-group">
-                <label for="school">학교명</label>
-                <input type="text" id="school" name="school" required placeholder="○○초등학교">
-            </div>
-            
-            <div class="form-group">
-                <label for="grade">학년</label>
-                <select id="grade" name="grade" required>
-                    <option value="">학년 선택</option>
-                    <option value="1">1학년</option>
-                    <option value="2">2학년</option>
-                    <option value="3">3학년</option>
-                    <option value="4">4학년</option>
-                    <option value="5">5학년</option>
-                    <option value="6">6학년</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="class">반</label>
-                <input type="number" id="class" name="class" required min="1" max="20" placeholder="1">
-            </div>
-            
-            <div class="form-group">
-                <label for="name">이름</label>
-                <input type="text" id="name" name="name" required placeholder="홍길동">
-            </div>
-            
-            <div class="form-group">
-                <label for="score">점수</label>
-                <input type="number" id="score" name="score" required min="0" max="100" placeholder="0">
-            </div>
-            
-            <div class="button-group">
-                <button type="submit" class="submit-btn">점수 제출하기 📝</button>
-                <button type="button" class="leaderboard-btn" onclick="showLeaderboard()">리더보드 보기 📊</button>
-            </div>
-            
-            <div class="success-message" id="successMessage">
-                🎉 점수가 성공적으로 등록되었습니다! 🎉
-            </div>
-        </form>
-    </div>
+<body class="antialiased text-gray-800">
 
-    <!-- 리더보드 모달 -->
-    <div id="leaderboardModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🏆 실시간 리더보드 🏆</h2>
-                <button class="close-btn" onclick="closeLeaderboard()">×</button>
-            </div>
-            <div class="slides-container">
-                <button class="nav-arrow left" onclick="prevSlide()">‹</button>
-                <button class="nav-arrow right" onclick="nextSlide()">›</button>
-                
-                <div class="slide-indicators">
-                    <span class="indicator active" onclick="goToSlide(0)"></span>
-                    <span class="indicator" onclick="goToSlide(1)"></span>
-                    <span class="indicator" onclick="goToSlide(2)"></span>
-                    <span class="indicator" onclick="goToSlide(3)"></span>
-                    <span class="indicator" onclick="goToSlide(4)"></span>
-                    <span class="indicator" onclick="goToSlide(5)"></span>
+    <div id="app" class="w-full min-h-screen flex items-center justify-center p-4">
+
+        <!-- 점수 입력 폼 뷰 -->
+        <div id="form-view" class="w-full max-w-lg">
+            <div class="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-blue-600">수학 점수 등록 📐</h1>
+                    <p class="text-gray-500 mt-2">자신의 점수를 등록하고 리더보드를 확인하세요!</p>
                 </div>
-                
-                <!-- 1학년부터 6학년까지의 슬라이드 -->
-                <div class="slide active" id="slide-1">
-                    <h3 class="grade-title">1학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-1"></div>
+                <form id="score-form" class="space-y-4">
+                    <div>
+                        <label for="school" class="text-sm font-medium text-gray-700">학교</label>
+                        <input type="text" id="school" name="school" required class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="grade" class="text-sm font-medium text-gray-700">학년</label>
+                            <select id="grade" name="grade" required class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="1">1학년</option>
+                                <option value="2">2학년</option>
+                                <option value="3">3학년</option>
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                         <div>
+                            <label for="classNum" class="text-sm font-medium text-gray-700">반</label>
+                            <input type="number" id="classNum" name="classNum" required min="1" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="name" class="text-sm font-medium text-gray-700">이름</label>
+                        <input type="text" id="name" name="name" required class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label for="score" class="text-sm font-medium text-gray-700">점수</label>
+                        <input type="number" id="score" name="score" required min="0" max="100" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition transform hover:scale-105">
+                        등록하기
+                    </button>
+                </form>
+                <div class="pt-4">
+                    <button id="open-leaderboard" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition transform hover:scale-105">
+                        🏆 리더보드 전체화면으로 보기
+                    </button>
                 </div>
-                <div class="slide" id="slide-2">
-                    <h3 class="grade-title">2학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-2"></div>
-                </div>
-                <div class="slide" id="slide-3">
-                    <h3 class="grade-title">3학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-3"></div>
-                </div>
-                <div class="slide" id="slide-4">
-                    <h3 class="grade-title">4학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-4"></div>
-                </div>
-                <div class="slide" id="slide-5">
-                    <h3 class="grade-title">5학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-5"></div>
-                </div>
-                <div class="slide" id="slide-6">
-                    <h3 class="grade-title">6학년 순위 🌟</h3>
-                    <div class="leaderboard" id="leaderboard-6"></div>
+                 <div id="toast-message" class="fixed bottom-5 right-5 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+                    점수가 성공적으로 등록되었습니다!
                 </div>
             </div>
         </div>
+
+        <!-- 리더보드 뷰 (이제 풀스크린 모달로 작동) -->
+        <div id="leaderboard-view" class="hidden w-full h-full bg-gray-100 flex-col p-4 md:p-8">
+             <button id="close-leaderboard" class="absolute top-3 right-5 text-gray-500 hover:text-blue-600 z-50 text-5xl font-light leading-none">&times;</button>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-center mb-6 text-blue-700 tracking-tight">
+                ✨ 실시간 수학 랭킹 ✨
+            </h1>
+            <!-- Swiper -->
+            <div class="swiper-container flex-1 w-full h-full">
+                <div class="swiper-wrapper" id="leaderboard-wrapper">
+                    <!-- 학년별 리더보드가 여기에 동적으로 추가됩니다 -->
+                </div>
+                <!-- 페이지네이션 -->
+                <div class="swiper-pagination"></div>
+                <!-- 네비게이션 버튼 -->
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+            </div>
+        </div>
+
     </div>
 
-    <script>
-        // 더미 데이터 (실제 Firebase 연결 전 테스트용)
-        let studentsData = {
-            1: [
-                {name: '김민수', school: '행복초등학교', class: 1, score: 95, timestamp: new Date('2024-01-01 09:00')},
-                {name: '이지은', school: '꿈나무초등학교', class: 2, score: 92, timestamp: new Date('2024-01-01 09:05')},
-                {name: '박준호', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최서연', school: '행복초등학교', class: 3, score: 85, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정하늘', school: '꿈나무초등학교', class: 2, score: 82, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            2: [
-                {name: '김영희', school: '바른초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '박철수', school: '새싹초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이미나', school: '행복초등학교', class: 3, score: 90, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최동현', school: '꿈나무초등학교', class: 1, score: 87, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정수민', school: '바른초등학교', class: 2, score: 84, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            3: [
-                {name: '홍길동', school: '새싹초등학교', class: 1, score: 100, timestamp: new Date('2024-01-01 09:00')},
-                {name: '김서진', school: '행복초등학교', class: 2, score: 96, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이도윤', school: '꿈나무초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '박소영', school: '바른초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '최준혁', school: '새싹초등학교', class: 2, score: 86, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            4: [
-                {name: '강지우', school: '꿈나무초등학교', class: 1, score: 97, timestamp: new Date('2024-01-01 09:00')},
-                {name: '윤서은', school: '바른초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '조민준', school: '행복초등학교', class: 3, score: 91, timestamp: new Date('2024-01-01 09:10')},
-                {name: '한지민', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:15')},
-                {name: '오승현', school: '꿈나무초등학교', class: 2, score: 85, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            5: [
-                {name: '신유진', school: '바른초등학교', class: 1, score: 99, timestamp: new Date('2024-01-01 09:00')},
-                {name: '장민호', school: '새싹초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '임수아', school: '행복초등학교', class: 3, score: 92, timestamp: new Date('2024-01-01 09:10')},
-                {name: '송재현', school: '꿈나무초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '배하영', school: '바른초등학교', class: 2, score: 87, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            6: [
-                {name: '노태민', school: '행복초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '서지안', school: '꿈나무초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '고은별', school: '바른초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '문준서', school: '새싹초등학교', class: 1, score: 90, timestamp: new Date('2024-01-01 09:15')},
-                {name: '양시우', school: '행복초등학교', class: 2, score: 88, timestamp: new Date('2024-01-01 09:20')}
-            ]
-        };
+    <script type="module">
+        // Firebase SDK 가져오기
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let currentSlide = 0;
-        let slideInterval;
+        // --- Firebase 초기화 및 설정 ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO_KEY", authDomain: "DEMO.firebaseapp.com", projectId: "DEMO" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // 익명으로 로그인하여 Firestore 보안 규칙 통과
+        signInAnonymously(auth).catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+        });
 
-        // 폼 제출 처리
-        document.getElementById('scoreForm').addEventListener('submit', function(e) {
+        const scoresCollection = collection(db, `artifacts/${appId}/public/data/scores`);
+        
+        // --- 전역 변수 ---
+        let swiper;
+        const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'];
+        
+        // --- UI 요소 ---
+        const formView = document.getElementById('form-view');
+        const leaderboardView = document.getElementById('leaderboard-view');
+        const scoreForm = document.getElementById('score-form');
+        const openLeaderboardBtn = document.getElementById('open-leaderboard');
+        const closeLeaderboardBtn = document.getElementById('close-leaderboard');
+        const leaderboardWrapper = document.getElementById('leaderboard-wrapper');
+        const toastMessage = document.getElementById('toast-message');
+        
+        // --- 테스트용 더미 데이터 생성 함수 ---
+        function generateDummyData() {
+            console.log("Generating dummy data for testing.");
+            const schools = ['행복초', '사랑초', '미래초', '희망초'];
+            const names = ['김민준', '이서연', '박도윤', '최지우', '정하준', '윤서아', '강시우', '송하은', '조유찬', '배하윤'];
+            let data = [];
+            for (let i = 0; i < 60; i++) { // 60명의 더미 데이터 생성
+                const grade = Math.floor(Math.random() * 6) + 1;
+                data.push({
+                    id: `dummy_${i}`,
+                    school: schools[Math.floor(Math.random() * schools.length)],
+                    grade: grade,
+                    classNum: Math.floor(Math.random() * 5) + 1,
+                    name: names[Math.floor(Math.random() * names.length)],
+                    score: Math.floor(Math.random() * 71) + 30, // 30 ~ 100점 사이
+                    createdAt: new Date(Date.now() - Math.random() * 100000000) // 시간도 무작위로 설정
+                });
+            }
+            return data.sort((a, b) => b.score - a.score || a.createdAt - b.createdAt);
+        }
+
+        // --- 뷰 라우팅 (페이지 첫 로드 시에만 사용) ---
+        function router() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('page') === 'leaderboard') {
+                showFullscreenLeaderboard();
+            }
+        }
+        
+        // --- 이벤트 리스너 ---
+        scoreForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const studentData = {
-                name: formData.get('name'),
-                school: formData.get('school'),
-                grade: parseInt(formData.get('grade')),
-                class: parseInt(formData.get('class')),
-                score: parseInt(formData.get('score')),
-                timestamp: new Date()
-            };
-            
-            // 더미 데이터에 추가 (실제로는 Firebase에 저장)
-            if (!studentsData[studentData.grade]) {
-                studentsData[studentData.grade] = [];
+            if (firebaseConfig.apiKey === "DEMO_KEY") {
+                showToast("테스트: 점수가 등록되었습니다!");
+                scoreForm.reset();
+                return;
             }
-            studentsData[studentData.grade].push(studentData);
+            const formData = new FormData(scoreForm);
+            try {
+                await addDoc(scoresCollection, {
+                    school: formData.get('school'),
+                    grade: parseInt(formData.get('grade')),
+                    classNum: parseInt(formData.get('classNum')),
+                    name: formData.get('name'),
+                    score: parseInt(formData.get('score')),
+                    createdAt: serverTimestamp()
+                });
+                showToast("점수가 성공적으로 등록되었습니다!");
+                scoreForm.reset();
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showToast("등록에 실패했습니다. 다시 시도해주세요.", true);
+            }
+        });
+
+        openLeaderboardBtn.addEventListener('click', showFullscreenLeaderboard);
+        closeLeaderboardBtn.addEventListener('click', hideFullscreenLeaderboard);
+
+        // --- 리더보드 기능 ---
+        function showFullscreenLeaderboard() {
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            leaderboardView.classList.remove('hidden');
+            leaderboardView.classList.add('fixed', 'inset-0', 'z-40', 'flex'); // flex를 다시 추가
+            initLeaderboard();
+        }
+
+        function hideFullscreenLeaderboard() {
+            document.body.style.overflow = ''; // 배경 스크롤 복원
+            leaderboardView.classList.add('hidden');
+            leaderboardView.classList.remove('fixed', 'inset-0', 'z-40', 'flex');
+            if (swiper) {
+                swiper.destroy(true, true); // Swiper 인스턴스 정리
+                swiper = null;
+            }
+        }
+
+        function initLeaderboard() {
+            if (swiper) {
+                swiper.destroy(true, true);
+            }
+
+            swiper = new Swiper('.swiper-container', {
+                loop: true,
+                autoplay: { delay: 5000, disableOnInteraction: false },
+                pagination: { el: '.swiper-pagination', clickable: true },
+                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                effect: 'coverflow',
+                coverflowEffect: { rotate: 50, stretch: 0, depth: 100, modifier: 1, slideShadows: true },
+            });
+
+            swiper.el.addEventListener('click', () => {
+                if (swiper && swiper.slides.length > 1) {
+                    swiper.slideNext();
+                }
+            });
+
+            if (firebaseConfig.apiKey === "DEMO_KEY") {
+                const dummyScores = generateDummyData();
+                updateLeaderboardUI(dummyScores);
+                return;
+            }
+
+            const q = query(scoresCollection, orderBy('score', 'desc'), orderBy('createdAt', 'asc'));
+            onSnapshot(q, (snapshot) => {
+                const allScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateLeaderboardUI(allScores);
+            });
+        }
+        
+        function updateLeaderboardUI(allScores) {
+            if (!swiper) return;
             
-            // 성공 메시지 표시
-            const successMessage = document.getElementById('successMessage');
-            successMessage.style.display = 'block';
+            const scoresByGrade = allScores.reduce((acc, score) => {
+                const grade = score.grade;
+                if (!acc[grade]) acc[grade] = [];
+                acc[grade].push(score);
+                return acc;
+            }, {});
+
+            const gradeCount = Object.keys(scoresByGrade).length;
+
+            if (gradeCount === 0) {
+                leaderboardWrapper.innerHTML = `<div class="swiper-slide flex items-center justify-center"><div class="text-center text-gray-500 text-xl">아직 등록된 점수 데이터가 없습니다.</div></div>`;
+                if(swiper.autoplay.running) swiper.autoplay.stop();
+                swiper.update();
+                return;
+            }
+            
+            swiper.loopDestroy();
+            swiper.removeAllSlides();
+
+            const slides = Object.keys(scoresByGrade).sort((a, b) => a - b).map(grade => createGradeSlide(grade, scoresByGrade[grade]));
+            swiper.appendSlide(slides);
+            
+            // NEW: setTimeout을 이용한 안정적인 재구성 로직
             setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
-            
-            // 폼 리셋
-            e.target.reset();
-            
-            console.log('학생 데이터 추가:', studentData);
-        });
-
-        // 리더보드 표시
-        function showLeaderboard() {
-            document.getElementById('leaderboardModal').style.display = 'block';
-            updateAllLeaderboards();
-            startAutoSlide();
-        }
-
-        // 리더보드 닫기
-        function closeLeaderboard() {
-            document.getElementById('leaderboardModal').style.display = 'none';
-            stopAutoSlide();
-        }
-
-        // 모든 학년의 리더보드 업데이트
-        function updateAllLeaderboards() {
-            for (let grade = 1; grade <= 6; grade++) {
-                updateLeaderboard(grade);
-            }
-        }
-
-        // 특정 학년 리더보드 업데이트
-        function updateLeaderboard(grade) {
-            const leaderboardContainer = document.getElementById(`leaderboard-${grade}`);
-            const students = studentsData[grade] || [];
-            
-            // 점수 순으로 정렬 (동점일 경우 먼저 등록한 순)
-            students.sort((a, b) => {
-                if (b.score !== a.score) {
-                    return b.score - a.score;
+                if (!swiper) return;
+                
+                if (gradeCount > 1) {
+                    swiper.loopCreate(); 
+                    swiper.update();
+                    
+                    if (!swiper.autoplay.running) {
+                        swiper.autoplay.start();
+                    }
+                    swiper.slideToLoop(0, 0); 
+                } else {
+                    swiper.update();
+                    if(swiper.autoplay.running) swiper.autoplay.stop();
                 }
-                return a.timestamp - b.timestamp;
-            });
+            }, 0); // 0ms 지연으로 다음 렌더링 사이클에 실행
+        }
+        
+        function createGradeSlide(grade, scores) {
+            const slideEl = document.createElement('div');
+            slideEl.className = 'swiper-slide';
+            const topScores = scores.slice(0, 10);
             
-            leaderboardContainer.innerHTML = '';
-            
-            students.forEach((student, index) => {
-                const rankItem = document.createElement('div');
-                rankItem.className = 'rank-item';
-                
-                const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : '';
-                
-                rankItem.innerHTML = `
-                    <div class="rank-number">${index + 1}</div>
-                    <div class="medal">${medal}</div>
-                    <div class="student-info">
-                        <div class="student-details">
-                            <div>${student.name}</div>
-                            <div style="font-size: 0.9em; color: #666;">
-                                ${student.school} ${student.class}반
-                            </div>
+            let studentsHtml = topScores.map((student, index) => {
+                const rank = index + 1;
+                const medal = MEDAL_EMOJIS[index] || `<strong>${rank}</strong>`;
+                return `
+                    <div class="flex items-center p-3 bg-white rounded-lg shadow-sm mb-3 animate-slide-up" style="animation-delay: ${index * 50}ms">
+                        <div class="w-12 text-center text-xl font-bold">${medal}</div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-lg">${student.name}</p>
+                            <p class="text-sm text-gray-500">${student.school} ${student.grade}학년 ${student.classNum}반</p>
                         </div>
-                        <div class="score">${student.score}점</div>
+                        <div class="text-xl font-bold text-blue-600">${student.score}점</div>
+                    </div>`;
+            }).join('');
+
+            if(topScores.length === 0) {
+                 studentsHtml = `<div class="text-center text-gray-500 p-10">아직 등록된 점수가 없어요.</div>`;
+            }
+
+            slideEl.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center p-2">
+                    <div class="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-2xl h-full max-h-[90vh] overflow-y-auto p-6">
+                        <h2 class="text-3xl font-bold text-center mb-6">${grade}학년 리더보드</h2>
+                        <div class="space-y-2">
+                            ${studentsHtml}
+                        </div>
                     </div>
-                `;
-                
-                leaderboardContainer.appendChild(rankItem);
-            });
+                </div>`;
+            return slideEl;
         }
 
-        // 슬라이드 네비게이션
-        function goToSlide(slideIndex) {
-            // 현재 활성 슬라이드 숨기기
-            document.querySelectorAll('.slide').forEach(slide => {
-                slide.classList.remove('active');
-            });
-            document.querySelectorAll('.indicator').forEach(indicator => {
-                indicator.classList.remove('active');
-            });
+        function showToast(message, isError = false) {
+            toastMessage.textContent = message;
+            toastMessage.classList.remove('bg-gray-800', 'bg-red-600', 'opacity-0');
+            toastMessage.classList.add(isError ? 'bg-red-600' : 'bg-gray-800');
             
-            // 새 슬라이드 표시
-            currentSlide = slideIndex;
-            document.getElementById(`slide-${slideIndex + 1}`).classList.add('active');
-            document.querySelectorAll('.indicator')[slideIndex].classList.add('active');
+            // 애니메이션을 위해 잠시 후 opacity-100 추가
+            setTimeout(() => {
+                toastMessage.classList.add('opacity-100');
+            }, 10);
+            
+            // 3초 후 다시 투명하게
+            setTimeout(() => {
+                toastMessage.classList.remove('opacity-100');
+                toastMessage.classList.add('opacity-0');
+            } , 3000);
         }
 
-        function nextSlide() {
-            const nextIndex = (currentSlide + 1) % 6;
-            goToSlide(nextIndex);
-        }
-
-        function prevSlide() {
-            const prevIndex = (currentSlide - 1 + 6) % 6;
-            goToSlide(prevIndex);
-        }
-
-        // 자동 슬라이드
-        function startAutoSlide() {
-            slideInterval = setInterval(() => {
-                nextSlide();
-            }, 5000);
-        }
-
-        function stopAutoSlide() {
-            if (slideInterval) {
-                clearInterval(slideInterval);
-            }
-        }
-
-        // 모달 외부 클릭시 닫기
-        document.getElementById('leaderboardModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLeaderboard();
-            }
-        });
-
-        // 키보드 네비게이션
-        document.addEventListener('keydown', function(e) {
-            if (document.getElementById('leaderboardModal').style.display === 'block') {
-                if (e.key === 'ArrowLeft') {
-                    prevSlide();
-                } else if (e.key === 'ArrowRight') {
-                    nextSlide();
-                } else if (e.key === 'Escape') {
-                    closeLeaderboard();
-                }
-            }
-        });
-
-        // 더미 데이터 시뮬레이션 (Firebase 미연결시에만 작동)
-        setInterval(() => {
-            if ((typeof firebaseConnected === 'undefined' || !firebaseConnected) && 
-                document.getElementById('leaderboardModal').style.display === 'block') {
-                updateAllLeaderboards();
-            }
-        }, 3000);
-
-        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다!');
+        // --- 앱 시작 ---
+        document.addEventListener('DOMContentLoaded', router);
     </script>
 </body>
 </html>
+
+
