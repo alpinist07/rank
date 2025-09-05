@@ -1,4 +1,160 @@
-<!DOCTYPE html>
+<script>
+        // 전역 변수 선언
+        let studentsData = {
+            1: [
+                {name: '김민수', school: '행복초등학교', class: 1, score: 95, timestamp: new Date('2024-01-01 09:00')},
+                {name: '이지은', school: '꿈나무초등학교', class: 2, score: 92, timestamp: new Date('2024-01-01 09:05')},
+                {name: '박준호', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:10')},
+                {name: '최서연', school: '행복초등학교', class: 3, score: 85, timestamp: new Date('2024-01-01 09:15')},
+                {name: '정하늘', school: '꿈나무초등학교', class: 2, score: 82, timestamp: new Date('2024-01-01 09:20')}
+            ],
+            2: [
+                {name: '김영희', school: '바른초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
+                {name: '박철수', school: '새싹초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
+                {name: '이미나', school: '행복초등학교', class: 3, score: 90, timestamp: new Date('2024-01-01 09:10')},
+                {name: '최동현', school: '꿈나무초등학교', class: 1, score: 87, timestamp: new Date('2024-01-01 09:15')},
+                {name: '정수민', school: '바른초등학교', class: 2, score: 84, timestamp: new Date('2024-01-01 09:20')}
+            ],
+            3: [
+                {name: '홍길동', school: '새싹초등학교', class: 1, score: 100, timestamp: new Date('2024-01-01 09:00')},
+                {name: '김서진', school: '행복초등학교', class: 2, score: 96, timestamp: new Date('2024-01-01 09:05')},
+                {name: '이도윤', school: '꿈나무초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
+                {name: '박소영', school: '바른초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
+                {name: '최준혁', school: '새싹초등학교', class: 2, score: 86, timestamp: new Date('2024-01-01 09:20')}
+            ],
+            4: [
+                {name: '강지우', school: '꿈나무초등학교', class: 1, score: 97, timestamp: new Date('2024-01-01 09:00')},
+                {name: '윤서은', school: '바른초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
+                {name: '조민준', school: '행복초등학교', class: 3, score: 91, timestamp: new Date('2024-01-01 09:10')},
+                {name: '한지민', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:15')},
+                {name: '오승현', school: '꿈나무초등학교', class: 2, score: 85, timestamp: new Date('2024-01-01 09:20')}
+            ],
+            5: [
+                {name: '신유진', school: '바른초등학교', class: 1, score: 99, timestamp: new Date('2024-01-01 09:00')},
+                {name: '장민호', school: '새싹초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
+                {name: '임수아', school: '행복초등학교', class: 3, score: 92, timestamp: new Date('2024-01-01 09:10')},
+                {name: '송재현', school: '꿈나무초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
+                {name: '배하영', school: '바른초등학교', class: 2, score: 87, timestamp: new Date('2024-01-01 09:20')}
+            ],
+            6: [
+                {name: '노태민', school: '행복초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
+                {name: '서지안', school: '꿈나무초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
+                {name: '고은별', school: '바른초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
+                {name: '문준서', school: '새싹초등학교', class: 1, score: 90, timestamp: new Date('2024-01-01 09:15')},
+                {name: '양시우', school: '행복초등학교', class: 2, score: 88, timestamp: new Date('2024-01-01 09:20')}
+            ]
+        };
+
+        let currentSlide = 0;
+        let slideInterval;
+        let firebaseConnected = false;
+        let firestoreListeners = {};
+
+        // Firebase 초기화 대기
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDB && window.addDoc && window.collection) {
+                        firebaseConnected = true;
+                        console.log('✅ Firebase 연결 성공! 실시간 데이터베이스 사용');
+                        resolve(true);
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+                
+                // 5초 후 타임아웃
+                setTimeout(() => {
+                    if (!firebaseConnected) {
+                        console.log('⚠️ Firebase 연결 실패! 더미 데이터로 동작');
+                        resolve(false);
+                    }
+                }, 5000);
+            });
+        }
+
+        // Firestore 실시간 리스너 설정
+        function setupFirestoreListeners() {
+            if (!firebaseConnected) return;
+            
+            try {
+                for (let grade = 1; grade <= 6; grade++) {
+                    const q = window.query(
+                        window.collection(window.firebaseDB, 'students'),
+                        window.orderBy('score', 'desc'),
+                        window.orderBy('timestamp', 'asc')
+                    );
+
+                    firestoreListeners[grade] = window.onSnapshot(q, (snapshot) => {
+                        const gradeStudents = [];
+                        snapshot.forEach((doc) => {
+                            const data = doc.data();
+                            if (data.grade === grade) {
+                                gradeStudents.push({
+                                    id: doc.id,
+                                    ...data,
+                                    timestamp: data.timestamp?.toDate() || new Date()
+                                });
+                            }
+                        });
+                        
+                        // Firebase 데이터로 업데이트
+                        studentsData[grade] = gradeStudents;
+                        
+                        // 리더보드가 열려있으면 즉시 업데이트
+                        if (document.getElementById('leaderboardModal').style.display === 'block') {
+                            updateLeaderboard(grade);
+                        }
+                    }, (error) => {
+                        console.error(`Firebase 리스너 오류 (${grade}학년):`, error);
+                    });
+                }
+            } catch (error) {
+                console.error('Firebase 리스너 설정 오류:', error);
+                firebaseConnected = false;
+            }
+        }
+
+        // 폼 제출 처리
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const studentData = {
+                name: formData.get('name'),
+                school: formData.get('school'),
+                grade: parseInt(formData.get('grade')),
+                class: parseInt(formData.get('class')),
+                score: parseInt(formData.get('score')),
+                timestamp: firebaseConnected ? window.serverTimestamp() : new Date()
+            };
+            
+            try {
+                if (firebaseConnected && window.firebaseDB) {
+                    // Firebase에 저장
+                    const docRef = await window.addDoc(
+                        window.collection(window.firebaseDB, 'students'), 
+                        studentData
+                    );
+                    console.log('🔥 Firebase에 저장 완료:', docRef.id);
+                } else {
+                    // 더미 데이터에 추가
+                    if (!studentsData[studentData.grade]) {
+                        studentsData[studentData.grade] = [];
+                    }
+                    studentsData[studentData.grade].push({
+                        ...studentData,
+                        timestamp: new Date()
+                    });
+                    console.log('📝 더미 데이터에 추가:', studentData);
+                }
+                
+                // 성공 메시지 표시
+                const successMessage = document.getElementById('successMessage');
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
