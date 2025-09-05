@@ -626,7 +626,8 @@
 
         // 더미 데이터 시뮬레이션 (Firebase 미연결시에만 작동)
         setInterval(() => {
-            if (!firebaseConnected && document.getElementById('leaderboardModal').style.display === 'block') {
+            if ((typeof firebaseConnected === 'undefined' || !firebaseConnected) && 
+                document.getElementById('leaderboardModal').style.display === 'block') {
                 updateAllLeaderboards();
             }
         }, 3000);
