@@ -1,160 +1,4 @@
-<script>
-        // 전역 변수 선언
-        let studentsData = {
-            1: [
-                {name: '김민수', school: '행복초등학교', class: 1, score: 95, timestamp: new Date('2024-01-01 09:00')},
-                {name: '이지은', school: '꿈나무초등학교', class: 2, score: 92, timestamp: new Date('2024-01-01 09:05')},
-                {name: '박준호', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최서연', school: '행복초등학교', class: 3, score: 85, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정하늘', school: '꿈나무초등학교', class: 2, score: 82, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            2: [
-                {name: '김영희', school: '바른초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '박철수', school: '새싹초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이미나', school: '행복초등학교', class: 3, score: 90, timestamp: new Date('2024-01-01 09:10')},
-                {name: '최동현', school: '꿈나무초등학교', class: 1, score: 87, timestamp: new Date('2024-01-01 09:15')},
-                {name: '정수민', school: '바른초등학교', class: 2, score: 84, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            3: [
-                {name: '홍길동', school: '새싹초등학교', class: 1, score: 100, timestamp: new Date('2024-01-01 09:00')},
-                {name: '김서진', school: '행복초등학교', class: 2, score: 96, timestamp: new Date('2024-01-01 09:05')},
-                {name: '이도윤', school: '꿈나무초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '박소영', school: '바른초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '최준혁', school: '새싹초등학교', class: 2, score: 86, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            4: [
-                {name: '강지우', school: '꿈나무초등학교', class: 1, score: 97, timestamp: new Date('2024-01-01 09:00')},
-                {name: '윤서은', school: '바른초등학교', class: 2, score: 94, timestamp: new Date('2024-01-01 09:05')},
-                {name: '조민준', school: '행복초등학교', class: 3, score: 91, timestamp: new Date('2024-01-01 09:10')},
-                {name: '한지민', school: '새싹초등학교', class: 1, score: 88, timestamp: new Date('2024-01-01 09:15')},
-                {name: '오승현', school: '꿈나무초등학교', class: 2, score: 85, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            5: [
-                {name: '신유진', school: '바른초등학교', class: 1, score: 99, timestamp: new Date('2024-01-01 09:00')},
-                {name: '장민호', school: '새싹초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '임수아', school: '행복초등학교', class: 3, score: 92, timestamp: new Date('2024-01-01 09:10')},
-                {name: '송재현', school: '꿈나무초등학교', class: 1, score: 89, timestamp: new Date('2024-01-01 09:15')},
-                {name: '배하영', school: '바른초등학교', class: 2, score: 87, timestamp: new Date('2024-01-01 09:20')}
-            ],
-            6: [
-                {name: '노태민', school: '행복초등학교', class: 1, score: 98, timestamp: new Date('2024-01-01 09:00')},
-                {name: '서지안', school: '꿈나무초등학교', class: 2, score: 95, timestamp: new Date('2024-01-01 09:05')},
-                {name: '고은별', school: '바른초등학교', class: 3, score: 93, timestamp: new Date('2024-01-01 09:10')},
-                {name: '문준서', school: '새싹초등학교', class: 1, score: 90, timestamp: new Date('2024-01-01 09:15')},
-                {name: '양시우', school: '행복초등학교', class: 2, score: 88, timestamp: new Date('2024-01-01 09:20')}
-            ]
-        };
-
-        let currentSlide = 0;
-        let slideInterval;
-        let firebaseConnected = false;
-        let firestoreListeners = {};
-
-        // Firebase 초기화 대기
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = () => {
-                    if (window.firebaseDB && window.addDoc && window.collection) {
-                        firebaseConnected = true;
-                        console.log('✅ Firebase 연결 성공! 실시간 데이터베이스 사용');
-                        resolve(true);
-                    } else {
-                        setTimeout(checkFirebase, 100);
-                    }
-                };
-                checkFirebase();
-                
-                // 5초 후 타임아웃
-                setTimeout(() => {
-                    if (!firebaseConnected) {
-                        console.log('⚠️ Firebase 연결 실패! 더미 데이터로 동작');
-                        resolve(false);
-                    }
-                }, 5000);
-            });
-        }
-
-        // Firestore 실시간 리스너 설정
-        function setupFirestoreListeners() {
-            if (!firebaseConnected) return;
-            
-            try {
-                for (let grade = 1; grade <= 6; grade++) {
-                    const q = window.query(
-                        window.collection(window.firebaseDB, 'students'),
-                        window.orderBy('score', 'desc'),
-                        window.orderBy('timestamp', 'asc')
-                    );
-
-                    firestoreListeners[grade] = window.onSnapshot(q, (snapshot) => {
-                        const gradeStudents = [];
-                        snapshot.forEach((doc) => {
-                            const data = doc.data();
-                            if (data.grade === grade) {
-                                gradeStudents.push({
-                                    id: doc.id,
-                                    ...data,
-                                    timestamp: data.timestamp?.toDate() || new Date()
-                                });
-                            }
-                        });
-                        
-                        // Firebase 데이터로 업데이트
-                        studentsData[grade] = gradeStudents;
-                        
-                        // 리더보드가 열려있으면 즉시 업데이트
-                        if (document.getElementById('leaderboardModal').style.display === 'block') {
-                            updateLeaderboard(grade);
-                        }
-                    }, (error) => {
-                        console.error(`Firebase 리스너 오류 (${grade}학년):`, error);
-                    });
-                }
-            } catch (error) {
-                console.error('Firebase 리스너 설정 오류:', error);
-                firebaseConnected = false;
-            }
-        }
-
-        // 폼 제출 처리
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const studentData = {
-                name: formData.get('name'),
-                school: formData.get('school'),
-                grade: parseInt(formData.get('grade')),
-                class: parseInt(formData.get('class')),
-                score: parseInt(formData.get('score')),
-                timestamp: firebaseConnected ? window.serverTimestamp() : new Date()
-            };
-            
-            try {
-                if (firebaseConnected && window.firebaseDB) {
-                    // Firebase에 저장
-                    const docRef = await window.addDoc(
-                        window.collection(window.firebaseDB, 'students'), 
-                        studentData
-                    );
-                    console.log('🔥 Firebase에 저장 완료:', docRef.id);
-                } else {
-                    // 더미 데이터에 추가
-                    if (!studentsData[studentData.grade]) {
-                        studentsData[studentData.grade] = [];
-                    }
-                    studentsData[studentData.grade].push({
-                        ...studentData,
-                        timestamp: new Date()
-                    });
-                    console.log('📝 더미 데이터에 추가:', studentData);
-                }
-                
-                // 성공 메시지 표시
-                const successMessage = document.getElementById('successMessage');
-                successMessage.style.display = 'block';
-                setTimeout(() => {
-                    successMessage.style.display<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -579,8 +423,46 @@
         </div>
     </div>
 
+    <!-- Firebase 스크립트 -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyARcTWQGOXCl4P_t_zUsrnyOSCsWxTxJVY",
+            authDomain: "rank-72b0e.firebaseapp.com",
+            projectId: "rank-72b0e",
+            storageBucket: "rank-72b0e.firebasestorage.app",
+            messagingSenderId: "184211126653",
+            appId: "1:184211126653:web:8db3ee09190907ceb57414",
+            measurementId: "G-DBNRMJS8WQ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        // Firebase 전역 변수로 설정
+        window.firebaseDB = db;
+        window.addDoc = addDoc;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.serverTimestamp = serverTimestamp;
+
+        console.log('🔥 Firebase 연결 완료! 프로젝트: rank-72b0e');
+        
+        // Firebase 로드 완료 이벤트 발생
+        window.dispatchEvent(new CustomEvent('firebaseLoaded'));
+    </script>
+
     <script>
-        // 더미 데이터 (실제 Firebase 연결 전 테스트용)
+        // 더미 데이터 (Firebase 연결 실패시 백업용)
         let studentsData = {
             1: [
                 {name: '김민수', school: '행복초등학교', class: 1, score: 95, timestamp: new Date('2024-01-01 09:00')},
@@ -628,10 +510,97 @@
 
         let currentSlide = 0;
         let slideInterval;
+        let firebaseConnected = false;
+        let firestoreListeners = {};
+
+        // Firebase 초기화 및 이벤트 리스너 설정
+        function initializeApp() {
+            console.log('🚀 앱 초기화 시작');
+            
+            // Firebase 로드 대기
+            if (window.firebaseDB) {
+                console.log('✅ Firebase 즉시 사용 가능');
+                firebaseConnected = true;
+                setupFirestoreListeners();
+            } else {
+                console.log('⏳ Firebase 로딩 대기중...');
+                window.addEventListener('firebaseLoaded', () => {
+                    console.log('✅ Firebase 로드 완료!');
+                    firebaseConnected = true;
+                    setupFirestoreListeners();
+                });
+                
+                // 5초 타임아웃
+                setTimeout(() => {
+                    if (!firebaseConnected) {
+                        console.log('⚠️ Firebase 연결 타임아웃! 더미 데이터로 동작');
+                    }
+                }, 5000);
+            }
+            
+            // 폼 이벤트 리스너 설정
+            setupFormListener();
+        }
+
+        // Firestore 실시간 리스너 설정
+        function setupFirestoreListeners() {
+            if (!firebaseConnected) return;
+            
+            try {
+                for (let grade = 1; grade <= 6; grade++) {
+                    const q = window.query(
+                        window.collection(window.firebaseDB, 'students'),
+                        window.orderBy('score', 'desc'),
+                        window.orderBy('timestamp', 'asc')
+                    );
+
+                    firestoreListeners[grade] = window.onSnapshot(q, (snapshot) => {
+                        const gradeStudents = [];
+                        snapshot.forEach((doc) => {
+                            const data = doc.data();
+                            if (data.grade === grade) {
+                                gradeStudents.push({
+                                    id: doc.id,
+                                    ...data,
+                                    timestamp: data.timestamp?.toDate() || new Date()
+                                });
+                            }
+                        });
+                        
+                        // Firebase 데이터로 업데이트
+                        studentsData[grade] = gradeStudents;
+                        
+                        // 리더보드가 열려있으면 즉시 업데이트
+                        if (document.getElementById('leaderboardModal').style.display === 'block') {
+                            updateLeaderboard(grade);
+                        }
+                    }, (error) => {
+                        console.error(`Firebase 리스너 오류 (${grade}학년):`, error);
+                    });
+                }
+            } catch (error) {
+                console.error('Firebase 리스너 설정 오류:', error);
+                firebaseConnected = false;
+            }
+        }
+
+        // 폼 리스너 설정
+        function setupFormListener() {
+            const form = document.getElementById('scoreForm');
+            if (form) {
+                form.addEventListener('submit', handleFormSubmit);
+                console.log('📝 폼 리스너 설정 완료');
+            } else {
+                console.error('❌ 폼을 찾을 수 없습니다');
+            }
+        }
 
         // 폼 제출 처리
-        document.getElementById('scoreForm').addEventListener('submit', function(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
+            console.log('📝 폼 제출 시작');
+            console.log('Firebase 연결 상태:', firebaseConnected);
+            console.log('Firebase DB:', window.firebaseDB);
             
             const formData = new FormData(e.target);
             const studentData = {
@@ -640,27 +609,57 @@
                 grade: parseInt(formData.get('grade')),
                 class: parseInt(formData.get('class')),
                 score: parseInt(formData.get('score')),
-                timestamp: new Date()
+                timestamp: firebaseConnected ? window.serverTimestamp() : new Date()
             };
             
-            // 더미 데이터에 추가 (실제로는 Firebase에 저장)
-            if (!studentsData[studentData.grade]) {
-                studentsData[studentData.grade] = [];
+            console.log('저장할 데이터:', studentData);
+            
+            try {
+                if (firebaseConnected && window.firebaseDB && window.addDoc && window.collection) {
+                    console.log('🔥 Firebase 저장 시도...');
+                    // Firebase에 저장
+                    const docRef = await window.addDoc(
+                        window.collection(window.firebaseDB, 'students'), 
+                        studentData
+                    );
+                    console.log('✅ Firebase에 저장 완료:', docRef.id);
+                } else {
+                    console.log('📝 더미 데이터 저장...');
+                    // 더미 데이터에 추가
+                    if (!studentsData[studentData.grade]) {
+                        studentsData[studentData.grade] = [];
+                    }
+                    studentsData[studentData.grade].push({
+                        ...studentData,
+                        timestamp: new Date()
+                    });
+                    console.log('📝 더미 데이터에 추가 완료');
+                }
+                
+                // 성공 메시지 표시
+                showSuccessMessage();
+                
+                // 폼 리셋
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('❌ 데이터 저장 오류:', error);
+                console.error('오류 코드:', error.code);
+                console.error('오류 메시지:', error.message);
+                alert('점수 저장 중 오류가 발생했습니다: ' + error.message);
             }
-            studentsData[studentData.grade].push(studentData);
-            
-            // 성공 메시지 표시
+        }
+
+        // 성공 메시지 표시
+        function showSuccessMessage() {
             const successMessage = document.getElementById('successMessage');
-            successMessage.style.display = 'block';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
-            
-            // 폼 리셋
-            e.target.reset();
-            
-            console.log('학생 데이터 추가:', studentData);
-        });
+            if (successMessage) {
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }
+        }
 
         // 리더보드 표시
         function showLeaderboard() {
@@ -708,87 +707,4 @@
                     <div class="medal">${medal}</div>
                     <div class="student-info">
                         <div class="student-details">
-                            <div>${student.name}</div>
-                            <div style="font-size: 0.9em; color: #666;">
-                                ${student.school} ${student.class}반
-                            </div>
-                        </div>
-                        <div class="score">${student.score}점</div>
-                    </div>
-                `;
-                
-                leaderboardContainer.appendChild(rankItem);
-            });
-        }
-
-        // 슬라이드 네비게이션
-        function goToSlide(slideIndex) {
-            // 현재 활성 슬라이드 숨기기
-            document.querySelectorAll('.slide').forEach(slide => {
-                slide.classList.remove('active');
-            });
-            document.querySelectorAll('.indicator').forEach(indicator => {
-                indicator.classList.remove('active');
-            });
-            
-            // 새 슬라이드 표시
-            currentSlide = slideIndex;
-            document.getElementById(`slide-${slideIndex + 1}`).classList.add('active');
-            document.querySelectorAll('.indicator')[slideIndex].classList.add('active');
-        }
-
-        function nextSlide() {
-            const nextIndex = (currentSlide + 1) % 6;
-            goToSlide(nextIndex);
-        }
-
-        function prevSlide() {
-            const prevIndex = (currentSlide - 1 + 6) % 6;
-            goToSlide(prevIndex);
-        }
-
-        // 자동 슬라이드
-        function startAutoSlide() {
-            slideInterval = setInterval(() => {
-                nextSlide();
-            }, 5000);
-        }
-
-        function stopAutoSlide() {
-            if (slideInterval) {
-                clearInterval(slideInterval);
-            }
-        }
-
-        // 모달 외부 클릭시 닫기
-        document.getElementById('leaderboardModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLeaderboard();
-            }
-        });
-
-        // 키보드 네비게이션
-        document.addEventListener('keydown', function(e) {
-            if (document.getElementById('leaderboardModal').style.display === 'block') {
-                if (e.key === 'ArrowLeft') {
-                    prevSlide();
-                } else if (e.key === 'ArrowRight') {
-                    nextSlide();
-                } else if (e.key === 'Escape') {
-                    closeLeaderboard();
-                }
-            }
-        });
-
-        // 더미 데이터 시뮬레이션 (Firebase 미연결시에만 작동)
-        setInterval(() => {
-            if ((typeof firebaseConnected === 'undefined' || !firebaseConnected) && 
-                document.getElementById('leaderboardModal').style.display === 'block') {
-                updateAllLeaderboards();
-            }
-        }, 3000);
-
-        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다!');
-    </script>
-</body>
-</html>
+                            <div>${student.name}</div
