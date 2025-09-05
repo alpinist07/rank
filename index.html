@@ -243,7 +243,6 @@
         }
 
         function initLeaderboard() {
-            // 이미 생성된 Swiper 인스턴스가 있다면 파괴
             if (swiper) {
                 swiper.destroy(true, true);
             }
@@ -257,7 +256,6 @@
                 coverflowEffect: { rotate: 50, stretch: 0, depth: 100, modifier: 1, slideShadows: true },
             });
 
-            // NEW: 슬라이드 클릭/터치 시 다음으로 넘기는 기능 추가
             swiper.el.addEventListener('click', () => {
                 if (swiper && swiper.slides.length > 1) {
                     swiper.slideNext();
@@ -278,6 +276,8 @@
         }
         
         function updateLeaderboardUI(allScores) {
+            if (!swiper) return;
+            
             const scoresByGrade = allScores.reduce((acc, score) => {
                 const grade = score.grade;
                 if (!acc[grade]) acc[grade] = [];
@@ -294,26 +294,29 @@
                 return;
             }
             
-            // NEW: 빈 슬라이드 오류를 해결하는 최종 로직
             swiper.loopDestroy();
             swiper.removeAllSlides();
 
             const slides = Object.keys(scoresByGrade).sort((a, b) => a - b).map(grade => createGradeSlide(grade, scoresByGrade[grade]));
             swiper.appendSlide(slides);
             
-            if (gradeCount > 1) {
-                swiper.loopCreate(); // 1. 슬라이드 추가 후, 루프 기능을 먼저 재구성합니다.
-                swiper.update();     // 2. 루프까지 적용된 최종 상태를 기준으로 전체 업데이트를 실행합니다.
+            // NEW: setTimeout을 이용한 안정적인 재구성 로직
+            setTimeout(() => {
+                if (!swiper) return;
                 
-                if (!swiper.autoplay.running) {
-                    swiper.autoplay.start();
+                if (gradeCount > 1) {
+                    swiper.loopCreate(); 
+                    swiper.update();
+                    
+                    if (!swiper.autoplay.running) {
+                        swiper.autoplay.start();
+                    }
+                    swiper.slideToLoop(0, 0); 
+                } else {
+                    swiper.update();
+                    if(swiper.autoplay.running) swiper.autoplay.stop();
                 }
-                 // 3. 업데이트 후 첫번째 슬라이드로 즉시 이동하여 빈 화면을 방지합니다.
-                swiper.slideToLoop(0, 0); 
-            } else {
-                swiper.update();
-                if(swiper.autoplay.running) swiper.autoplay.stop();
-            }
+            }, 0); // 0ms 지연으로 다음 렌더링 사이클에 실행
         }
         
         function createGradeSlide(grade, scores) {
@@ -354,7 +357,14 @@
         function showToast(message, isError = false) {
             toastMessage.textContent = message;
             toastMessage.classList.remove('bg-gray-800', 'bg-red-600', 'opacity-0');
-            toastMessage.classList.add(isError ? 'bg-red-600' : 'bg-gray-800', 'opacity-100');
+            toastMessage.classList.add(isError ? 'bg-red-600' : 'bg-gray-800');
+            
+            // 애니메이션을 위해 잠시 후 opacity-100 추가
+            setTimeout(() => {
+                toastMessage.classList.add('opacity-100');
+            }, 10);
+            
+            // 3초 후 다시 투명하게
             setTimeout(() => {
                 toastMessage.classList.remove('opacity-100');
                 toastMessage.classList.add('opacity-0');
@@ -366,8 +376,4 @@
     </script>
 </body>
 </html>
-
-
-
-
 
