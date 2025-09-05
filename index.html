@@ -294,24 +294,24 @@
                 return;
             }
             
-            // NEW: 빈 슬라이드 오류를 막는 가장 안정적인 업데이트 로직
+            // NEW: 빈 슬라이드 오류를 해결하는 최종 로직
             swiper.loopDestroy();
             swiper.removeAllSlides();
 
             const slides = Object.keys(scoresByGrade).sort((a, b) => a - b).map(grade => createGradeSlide(grade, scoresByGrade[grade]));
             swiper.appendSlide(slides);
-
-            swiper.update(); // 슬라이드가 추가된 것을 먼저 확실히 인식시킵니다.
             
             if (gradeCount > 1) {
-                swiper.loopCreate(); // 그 다음에 루프를 재구성합니다.
+                swiper.loopCreate(); // 1. 슬라이드 추가 후, 루프 기능을 먼저 재구성합니다.
+                swiper.update();     // 2. 루프까지 적용된 최종 상태를 기준으로 전체 업데이트를 실행합니다.
                 
                 if (!swiper.autoplay.running) {
                     swiper.autoplay.start();
                 }
-                 // 업데이트 후 첫번째 슬라이드로 즉시 이동하여 빈 화면 방지
+                 // 3. 업데이트 후 첫번째 슬라이드로 즉시 이동하여 빈 화면을 방지합니다.
                 swiper.slideToLoop(0, 0); 
             } else {
+                swiper.update();
                 if(swiper.autoplay.running) swiper.autoplay.stop();
             }
         }
@@ -366,6 +366,7 @@
     </script>
 </body>
 </html>
+
 
 
 
