@@ -46,6 +46,7 @@
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer; /* 데이터 초기화 기능을 위해 커서 변경 */
         }
 
         .subtitle {
@@ -132,6 +133,11 @@
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
             color: white;
         }
+        
+        .delete-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
 
         .leaderboard-btn {
             background: linear-gradient(45deg, #feca57, #ff9ff3);
@@ -197,7 +203,6 @@
         }
 
         .modal {
-            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -219,6 +224,9 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        #leaderboardModal .modal-content {
             width: 90%;
             height: 90%;
         }
@@ -332,6 +340,20 @@
             transition: all 0.3s ease;
             animation: slideUp 0.5s ease-out;
             font-size: 18px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .rank-item:hover .edit-icon {
+            opacity: 1;
+        }
+        .edit-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
         
         .rank-1 { background: linear-gradient(135deg, #fff1b5, #ffdd59); }
@@ -427,7 +449,7 @@
             padding: 60px 20px;
             color: #666;
             font-size: 1.3em;
-            grid-column: 1 / -1; /* 그리드 전체 너비 차지 */
+            grid-column: 1 / -1;
         }
 
         .empty-state .emoji {
@@ -436,7 +458,7 @@
             display: block;
         }
         
-        #rankResultModal .modal-content {
+        .popup-modal .modal-content {
             width: auto;
             max-width: 500px;
             height: auto;
@@ -448,7 +470,7 @@
             color: #333;
             margin-bottom: 20px;
         }
-        #rankResultModal button {
+        .popup-modal button {
              width: 100px;
              margin: 0 auto;
         }
@@ -456,7 +478,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="title">🏆 수학 축전 리더보드 🏆</h1>
+        <h1 id="main-title" class="title">🏆 수학 축전 리더보드 🏆</h1>
         <p class="subtitle">점수를 입력하고 친구들과 경쟁해보세요!</p>
         
         <form id="scoreForm">
@@ -486,7 +508,7 @@
             
             <div class="form-group">
                 <label for="score">점수</label>
-                <input type="number" id="score" name="score" required min="0" max="100" placeholder="0" disabled>
+                <input type="number" id="score" name="score" required min="0" placeholder="0" disabled>
             </div>
             
             <div class="button-group">
@@ -519,17 +541,56 @@
     </div>
     
     <!-- 등수 확인 팝업 모달 -->
-    <div id="rankResultModal" class="modal">
+    <div id="rankResultModal" class="modal popup-modal">
         <div class="modal-content">
             <h2 id="rankResultMessage"></h2>
             <button id="closeRankResult" class="submit-btn">확인</button>
         </div>
     </div>
 
+    <!-- 비밀번호 확인 모달 -->
+    <div id="passwordModal" class="modal popup-modal">
+        <div class="modal-content">
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="password">관리자 비밀번호</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="submit-btn">확인</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 수정/삭제 모달 -->
+    <div id="editModal" class="modal popup-modal">
+        <div class="modal-content">
+            <form id="editForm">
+                <h2 class="subtitle">기록 수정하기</h2>
+                <div class="form-group">
+                    <label for="editSchool">학교명</label>
+                    <input type="text" id="editSchool" required>
+                </div>
+                <div class="form-group">
+                    <label for="editName">이름</label>
+                    <input type="text" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editScore">점수</label>
+                    <input type="number" id="editScore" required min="0">
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="submit-btn">저장</button>
+                    <button type="button" id="deleteBtn" class="delete-btn">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <script type="module">
         // Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyARcTWQGOXCl4P_t_zUsrnyOSCsWxTxJVY",
@@ -550,14 +611,19 @@
         let isAutoSlideRunning = false;
         let touchStartX = 0;
         let touchEndX = 0;
-        const CUTE_EMOJIS = ['🌟', '🚀', '💖', '🌈', '🍀', '🎉', '💡', '🔥'];
+        const CUTE_EMOJIS = ['😊', '👍', '🌸', '🎈', '🎁', '☀️', '🐶', '🍀'];
         let activeGrades = [];
+        let studentToEdit = null;
+        let passwordAction = null; // 'edit' or 'reset'
 
         const statusMessageEl = document.getElementById('statusMessage');
         const successMessageEl = document.getElementById('successMessage');
         const leaderboardModal = document.getElementById('leaderboardModal');
         const rankResultModal = document.getElementById('rankResultModal');
+        const passwordModal = document.getElementById('passwordModal');
+        const editModal = document.getElementById('editModal');
         const toggleSlideBtn = document.getElementById('toggleSlideBtn');
+        const mainTitle = document.getElementById('main-title');
 
         function showStatusMessage(type, message) {
             statusMessageEl.className = `status-message status-${type}`;
@@ -587,7 +653,9 @@
                     });
                     
                     studentsData = newStudentsData;
-                    activeGrades = Object.keys(studentsData).filter(g => studentsData[g].length > 0).sort((a,b) => a-b);
+                    activeGrades = Object.keys(studentsData)
+                        .filter(g => studentsData[g].length > 0)
+                        .sort((a,b) => (a === '0' ? 7 : parseInt(a)) - (b === '0' ? 7 : parseInt(b)));
                     
                     if (leaderboardModal.classList.contains('show')) {
                         updateAllLeaderboards();
@@ -621,7 +689,6 @@
                 const docRef = await addDoc(collection(db, 'students'), studentData);
                 showSuccessMessage();
                 
-                // Add new student locally to calculate rank immediately
                 if (!studentsData[grade]) studentsData[grade] = [];
                 const tempStudent = { ...studentData, id: docRef.id, timestamp: new Date() };
                 studentsData[grade].push(tempStudent);
@@ -685,7 +752,7 @@
                 indicator.className = 'indicator';
                 indicator.onclick = () => {
                     goToSlide(index);
-                    startAutoSlide(); // Restart timer on manual navigation
+                    startAutoSlide();
                 };
                 indicatorsContainer.appendChild(indicator);
                 
@@ -720,9 +787,18 @@
                         <span class="student-name" title="${student.name}">${student.name}</span>
                     </div>
                     <div class="score">${student.score}점</div>
+                    <div class="edit-icon">✏️</div>
                 `;
+                rankItem.addEventListener('click', () => handleRankItemClick(student));
                 leaderboardContainer.appendChild(rankItem);
             });
+        }
+        
+        function handleRankItemClick(student) {
+            studentToEdit = student;
+            passwordAction = 'edit';
+            passwordModal.classList.add('show');
+            document.getElementById('password').focus();
         }
 
         window.goToSlide = function(slideIndex) {
@@ -767,7 +843,25 @@
             const swipeDistance = touchEndX - touchStartX;
             if (swipeDistance > swipeThreshold) prevSlide();
             else if (swipeDistance < -swipeThreshold) nextSlide();
-            startAutoSlide(); // Restart timer on manual navigation
+            startAutoSlide();
+        }
+
+        async function resetAllData() {
+            console.log('🗑️ 모든 데이터 초기화 시작...');
+            const q = query(collection(db, 'students'));
+            try {
+                const snapshot = await getDocs(q);
+                const deletePromises = [];
+                snapshot.forEach(doc => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                await Promise.all(deletePromises);
+                alert('모든 데이터가 성공적으로 초기화되었습니다.');
+                console.log('✅ 모든 데이터 초기화 완료.');
+            } catch (err) {
+                alert('데이터 초기화 중 오류가 발생했습니다.');
+                console.error('❌ 데이터 초기화 오류:', err);
+            }
         }
         
         function startApp() {
@@ -779,6 +873,12 @@
             } else {
                 showStatusMessage('error', '❌ 데이터베이스 연결에 실패했습니다.');
             }
+
+            mainTitle.addEventListener('click', () => {
+                passwordAction = 'reset';
+                passwordModal.classList.add('show');
+                document.getElementById('password').focus();
+            });
 
             document.getElementById('scoreForm').addEventListener('submit', handleFormSubmit);
             document.getElementById('grade-buttons').addEventListener('click', (e) => {
@@ -798,6 +898,66 @@
             toggleSlideBtn.addEventListener('click', () => {
                 if (isAutoSlideRunning) stopAutoSlide();
                 else startAutoSlide();
+            });
+
+            passwordModal.addEventListener('click', (e) => {
+                if (e.target === passwordModal) passwordModal.classList.remove('show');
+            });
+            document.getElementById('passwordForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = document.getElementById('password').value;
+                if (password === '2025!') {
+                    passwordModal.classList.remove('show');
+                    
+                    if (passwordAction === 'edit') {
+                        document.getElementById('editSchool').value = studentToEdit.school;
+                        document.getElementById('editName').value = studentToEdit.name;
+                        document.getElementById('editScore').value = studentToEdit.score;
+                        editModal.classList.add('show');
+                    } else if (passwordAction === 'reset') {
+                        if (confirm('정말로 모든 학생 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                            resetAllData();
+                        }
+                    }
+                } else {
+                    alert('비밀번호가 틀렸습니다!');
+                }
+                e.target.reset();
+                passwordAction = null;
+            });
+            
+            editModal.addEventListener('click', (e) => {
+                if (e.target === editModal) editModal.classList.remove('show');
+            });
+            document.getElementById('editForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const studentRef = doc(db, 'students', studentToEdit.id);
+                try {
+                    await updateDoc(studentRef, {
+                        school: document.getElementById('editSchool').value,
+                        name: document.getElementById('editName').value,
+                        score: parseInt(document.getElementById('editScore').value)
+                    });
+                    alert('수정되었습니다.');
+                    editModal.classList.remove('show');
+                } catch (err) {
+                    alert('수정 중 오류가 발생했습니다.');
+                    console.error(err);
+                }
+            });
+            
+            document.getElementById('deleteBtn').addEventListener('click', async () => {
+                if (confirm(`'${studentToEdit.name}' 학생의 기록을 정말로 삭제하시겠습니까?`)) {
+                    const studentRef = doc(db, 'students', studentToEdit.id);
+                    try {
+                        await deleteDoc(studentRef);
+                        alert('삭제되었습니다.');
+                        editModal.classList.remove('show');
+                    } catch (err) {
+                        alert('삭제 중 오류가 발생했습니다.');
+                        console.error(err);
+                    }
+                }
             });
             
             const slidesContainer = document.querySelector('.slides-container');
