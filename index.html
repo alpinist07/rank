@@ -718,7 +718,7 @@
         }
         
         // 초기화 및 이벤트 리스너 설정
-        function initializeApp() {
+        function startApp() { // <-- 함수 이름 변경
             console.log('🚀 앱 초기화 시작');
             showStatusMessage('connecting', '🔄 데이터베이스에 연결하는 중입니다...');
 
@@ -754,7 +754,7 @@
         }
 
         // DOM 로드 완료 후 앱 시작
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        document.addEventListener('DOMContentLoaded', startApp); // <-- 호출하는 함수 이름 변경
         console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다!');
     </script>
 </body>
