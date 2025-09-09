@@ -58,7 +58,8 @@
             width: 100%;
             max-width: 600px;
             margin: 0 auto;
-            background: white;
+            background: white url('노형초는똑똑 이미지.png') no-repeat center bottom;
+            background-size: contain;
             border-radius: 24px;
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.15);
@@ -73,9 +74,8 @@
             color: #4CAF50;
             font-size: 2.8em;
             margin-bottom: 10px;
-            text-shadow: -2px 2px 0px #FFD700, -4px 4px 0px #FFB300;
             cursor: pointer;
-            -webkit-text-stroke: 2px white;
+            font-weight: 700;
         }
 
         .subtitle {
@@ -115,18 +115,20 @@
         
         .grade-button-group {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* 줄바꿈 방지 */
             gap: 10px;
         }
         .grade-button-group button {
             flex-grow: 1;
-            padding: 12px;
+            flex-shrink: 1; /* 화면 작아질 때 버튼도 작아지도록 */
+            padding: 12px 5px; /* 좌우 패딩 감소 */
             font-size: 1.1em;
             background-color: #f5f5f5;
             border: 3px solid #ddd;
             border-radius: 12px;
             font-family: 'Noto Sans KR', sans-serif;
             font-weight: bold;
+            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
         }
         .grade-button-group button:hover {
             background-color: #e0e0e0;
@@ -312,8 +314,8 @@
                 gap: 5px;
             }
             .grade-button-group button {
-                font-size: 0.9em;
-                padding: 8px;
+                font-size: clamp(0.7rem, 3.5vw, 0.9rem); /* 화면 너비에 따라 폰트 크기 자동 조절 */
+                padding: 8px 4px;
             }
             .title {
                 font-size: 2.2em;
@@ -325,8 +327,8 @@
     </style>
 </head>
 <body>
-    <img src="1-2학년_아리.jpg" class="character character-ari" alt="아리 캐릭터">
-    <img src="1-2학년_수리.jpg" class="character character-suri" alt="수리 캐릭터">
+    <img src="1-2학년_아리.png" class="character character-ari" alt="아리 캐릭터">
+    <img src="1-2학년_수리.png" class="character character-suri" alt="수리 캐릭터">
 
     <div class="container">
         <h1 id="main-title" class="title">똑똑! 수학탐험대</h1>
@@ -411,13 +413,15 @@
         let touchStartX = 0, touchEndX = 0;
         const CUTE_EMOJIS = ['😊', '👍', '🌸', '🎈', '🎁', '☀️', '🐶', '🍀'];
         const CHAR_IMAGES = {
-            '1-2': ['1-2학년_아리.jpg', '1-2학년_수리.jpg'],
+            '1-2': ['1-2학년_아리.png', '1-2학년_수리.png'],
             '3-4': ['3-4학년_아리.png', '3-4학년_수리.png', '3-4학년_둥둥.png'],
             '5-6': ['5-6학년_아리.png', '5-6학년_수리.png', '5-6학년_둥둥.png']
         };
         let activeGrades = [];
         let studentToEdit = null;
         let passwordAction = null;
+        const ALL_GRADES = ['1', '2', '3', '4', '5', '6', '0'];
+
 
         const allElements = {
             statusMessage: document.getElementById('statusMessage'),
@@ -452,9 +456,6 @@
                     });
                     
                     studentsData = newStudentsData;
-                    activeGrades = Object.keys(studentsData)
-                        .filter(g => studentsData[g].length > 0)
-                        .sort((a,b) => (a === '0' ? 7 : parseInt(a)) - (b === '0' ? 7 : parseInt(b)));
                     
                     if (allElements.leaderboardModal.classList.contains('show')) updateAllLeaderboards();
                 }, (error) => {
@@ -499,7 +500,6 @@
         }
         
         window.showLeaderboard = function() {
-            if (activeGrades.length === 0) { alert('등록된 점수가 없습니다.'); return; }
             allElements.leaderboardModal.classList.add('show');
             updateAllLeaderboards();
             goToSlide(0);
@@ -516,6 +516,20 @@
             const indicatorsParent = document.querySelector('.slide-indicators');
             slidesParent.innerHTML = '';
             indicatorsParent.innerHTML = '';
+            
+            activeGrades = ALL_GRADES.filter(g => studentsData[g] && studentsData[g].length > 0);
+            if (studentsData['0'] && studentsData['0'].length > 0) {
+                 const regularGrades = ALL_GRADES.filter(g => g !== '0' && studentsData[g] && studentsData[g].length > 0).sort();
+                 activeGrades = [...regularGrades, '0'];
+            } else {
+                activeGrades = ALL_GRADES.filter(g => g !== '0' && studentsData[g] && studentsData[g].length > 0).sort();
+            }
+
+            if (activeGrades.length === 0) {
+                 // 데이터가 아예 없을 경우를 대비해 1학년 슬라이드라도 표시
+                 activeGrades = ['1'];
+            }
+
 
             activeGrades.forEach((grade, index) => {
                 const gradeText = grade === '0' ? '기타' : `${grade}학년`;
