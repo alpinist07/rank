@@ -780,13 +780,7 @@
             }
         });
 
-        // 더미 데이터 시뮬레이션 (Firebase 미연결시에만 작동)
-        setInterval(() => {
-            if (!firebaseConnected && document.getElementById('leaderboardModal').style.display === 'block') {
-                updateAllLeaderboards();
-            }
-        }, 3000);
-
+        // 더미 데이터 시뮬레이션 제거 (Firebase만 사용)
         // 페이지 로드시 앱 초기화
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM 로드 완료');
@@ -801,7 +795,7 @@
             }
         });
 
-        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다!');
+        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다! (Firebase 전용)');
     </script>
 </body>
 </html>
