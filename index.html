@@ -400,11 +400,6 @@
             </div>
             
             <div class="form-group">
-                <label for="class">반</label>
-                <input type="number" id="class" name="class" required min="1" max="20" placeholder="1" disabled>
-            </div>
-            
-            <div class="form-group">
                 <label for="name">이름</label>
                 <input type="text" id="name" name="name" required placeholder="홍길동" disabled>
             </div>
@@ -477,48 +472,30 @@
 
     <!-- Firebase 스크립트 -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+        // Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyARcTWQGOXCl4P_t_zUsrnyOSCsWxTxJVY",
             authDomain: "rank-72b0e.firebaseapp.com",
             projectId: "rank-72b0e",
-            storageBucket: "rank-72b0e.firebasestorage.app",
+            storageBucket: "rank-72b0e.appspot.com",
             messagingSenderId: "184211126653",
-            appId: "1:184211126653:web:8db3ee09190907ceb57414",
-            measurementId: "G-DBNRMJS8WQ"
+            appId: "1:184211126653:web:8db3ee09190907ceb57414"
         };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
-        // Firebase 전역 변수로 설정
-        window.firebaseDB = db;
-        window.addDoc = addDoc;
-        window.collection = collection;
-        window.onSnapshot = onSnapshot;
-        window.query = query;
-        window.orderBy = orderBy;
-        window.serverTimestamp = serverTimestamp;
+        // --- 여기서부터 앱 전체 로직 시작 ---
 
-        console.log('🔥 Firebase 모듈 로드 완료! 프로젝트: rank-72b0e');
-        
-        // Firebase 로드 완료 이벤트 발생
-        window.dispatchEvent(new CustomEvent('firebaseLoaded'));
-    </script>
-
-    <script>
         // 전역 변수
         let studentsData = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
         let currentSlide = 0;
         let slideInterval;
-        let firebaseConnected = false;
         let firestoreListener = null;
 
         // 상태 메시지 표시
@@ -545,121 +522,60 @@
             });
             
             buttons.forEach(button => {
-                button.disabled = !enabled;
+                // 모달 닫기 버튼은 항상 활성화
+                if (!button.classList.contains('close-btn')) {
+                    button.disabled = !enabled;
+                }
             });
-        }
-
-        // Firebase 초기화
-        function initializeApp() {
-            console.log('🚀 앱 초기화 시작');
-            showStatusMessage('connecting', '🔄 데이터베이스에 연결하는 중입니다...');
-            
-            // Firebase 로드 대기
-            if (window.firebaseDB) {
-                connectToFirebase();
-            } else {
-                window.addEventListener('firebaseLoaded', () => {
-                    connectToFirebase();
-                });
-                
-                // 10초 타임아웃
-                setTimeout(() => {
-                    if (!firebaseConnected) {
-                        console.error('❌ Firebase 연결 타임아웃');
-                        showStatusMessage('error', '❌ 데이터베이스 연결에 실패했습니다. 페이지를 새로고침해주세요.');
-                    }
-                }, 10000);
-            }
-            
-            // 폼 이벤트 리스너 설정
-            setupFormListener();
-        }
-
-        // Firebase 연결
-        async function connectToFirebase() {
-            try {
-                console.log('🔄 Firebase 연결 시도...');
-                
-                // 연결 테스트
-                await setupFirestoreListener();
-                
-                firebaseConnected = true;
-                console.log('✅ Firebase 연결 성공!');
-                
-                showStatusMessage('connected', '✅ 데이터베이스 연결 완료! 이제 점수를 입력하실 수 있습니다.');
-                setUIEnabled(true);
-                
-                setTimeout(() => {
-                    hideStatusMessage();
-                }, 3000);
-                
-            } catch (error) {
-                console.error('❌ Firebase 연결 오류:', error);
-                showStatusMessage('error', '❌ 데이터베이스 연결에 실패했습니다: ' + error.message);
-                firebaseConnected = false;
-            }
         }
 
         // Firestore 실시간 리스너 설정
-        async function setupFirestoreListener() {
-            if (!window.firebaseDB) throw new Error('Firebase DB가 초기화되지 않았습니다.');
-            
-            const studentsQuery = window.query(
-                window.collection(window.firebaseDB, 'students'),
-                window.orderBy('score', 'desc'),
-                window.orderBy('timestamp', 'asc')
-            );
+        function setupFirestoreListener() {
+            try {
+                const studentsQuery = query(
+                    collection(db, 'students'),
+                    orderBy('score', 'desc'),
+                    orderBy('timestamp', 'asc')
+                );
 
-            firestoreListener = window.onSnapshot(studentsQuery, (snapshot) => {
-                console.log('🔥 Firebase 데이터 업데이트:', snapshot.size, '개 문서');
-                
-                // 학년별로 데이터 분류
-                const newStudentsData = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const grade = data.grade;
+                firestoreListener = onSnapshot(studentsQuery, (snapshot) => {
+                    console.log('🔥 Firebase 데이터 업데이트:', snapshot.size, '개 문서');
                     
-                    if (grade >= 1 && grade <= 6) {
-                        newStudentsData[grade].push({
-                            id: doc.id,
-                            ...data,
-                            timestamp: data.timestamp?.toDate() || new Date()
-                        });
+                    const newStudentsData = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
+                    
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const grade = data.grade;
+                        
+                        if (grade >= 1 && grade <= 6) {
+                            newStudentsData[grade].push({
+                                id: doc.id,
+                                ...data,
+                                timestamp: data.timestamp?.toDate() || new Date()
+                            });
+                        }
+                    });
+                    
+                    studentsData = newStudentsData;
+                    
+                    if (document.getElementById('leaderboardModal').style.display === 'block') {
+                        console.log('📊 리더보드 실시간 업데이트');
+                        updateAllLeaderboards();
                     }
+                }, (error) => {
+                    console.error('❌ Firebase 리스너 오류:', error);
+                    showStatusMessage('error', '데이터 수신에 실패했습니다.');
                 });
-                
-                // 전역 데이터 업데이트
-                studentsData = newStudentsData;
-                
-                // 리더보드가 열려있으면 즉시 업데이트
-                if (document.getElementById('leaderboardModal').style.display === 'block') {
-                    console.log('📊 리더보드 실시간 업데이트');
-                    updateAllLeaderboards();
-                }
-            }, (error) => {
-                console.error('❌ Firebase 리스너 오류:', error);
+                return true; // 성공
+            } catch (error) {
+                console.error('❌ Firestore 리스너 설정 오류:', error);
                 throw error;
-            });
-        }
-
-        // 폼 리스너 설정
-        function setupFormListener() {
-            const form = document.getElementById('scoreForm');
-            if (form) {
-                form.addEventListener('submit', handleFormSubmit);
-                console.log('📝 폼 리스너 설정 완료');
             }
         }
 
         // 폼 제출 처리
         async function handleFormSubmit(e) {
             e.preventDefault();
-            
-            if (!firebaseConnected) {
-                alert('데이터베이스에 연결되지 않았습니다.');
-                return;
-            }
             
             console.log('📝 폼 제출 시작');
             
@@ -668,16 +584,15 @@
                 name: formData.get('name'),
                 school: formData.get('school'),
                 grade: parseInt(formData.get('grade')),
-                class: parseInt(formData.get('class')),
                 score: parseInt(formData.get('score')),
-                timestamp: window.serverTimestamp()
+                timestamp: serverTimestamp()
             };
             
             console.log('저장할 데이터:', studentData);
             
             try {
-                const docRef = await window.addDoc(
-                    window.collection(window.firebaseDB, 'students'), 
+                const docRef = await addDoc(
+                    collection(db, 'students'), 
                     studentData
                 );
                 console.log('✅ Firebase에 저장 완료:', docRef.id);
@@ -701,19 +616,14 @@
         }
 
         // 리더보드 표시
-        function showLeaderboard() {
-            if (!firebaseConnected) {
-                alert('데이터베이스에 연결되지 않았습니다.');
-                return;
-            }
-            
+        window.showLeaderboard = function() {
             document.getElementById('leaderboardModal').style.display = 'block';
             updateAllLeaderboards();
             startAutoSlide();
         }
 
         // 리더보드 닫기
-        function closeLeaderboard() {
+        window.closeLeaderboard = function() {
             document.getElementById('leaderboardModal').style.display = 'none';
             stopAutoSlide();
         }
@@ -733,13 +643,7 @@
             const students = studentsData[grade] || [];
             console.log(`📊 ${grade}학년 데이터 업데이트:`, students.length, '명');
             
-            // 점수 순으로 정렬 (동점일 경우 먼저 등록한 순)
-            students.sort((a, b) => {
-                if (b.score !== a.score) {
-                    return b.score - a.score;
-                }
-                return a.timestamp - b.timestamp;
-            });
+            students.sort((a, b) => b.score - a.score || a.timestamp - b.timestamp);
             
             leaderboardContainer.innerHTML = '';
             
@@ -778,7 +682,7 @@
         }
 
         // 슬라이드 네비게이션
-        function goToSlide(slideIndex) {
+        window.goToSlide = function(slideIndex) {
             document.querySelectorAll('.slide').forEach(slide => {
                 slide.classList.remove('active');
             });
@@ -791,21 +695,20 @@
             document.querySelectorAll('.indicator')[slideIndex].classList.add('active');
         }
 
-        function nextSlide() {
+        window.nextSlide = function() {
             const nextIndex = (currentSlide + 1) % 6;
             goToSlide(nextIndex);
         }
 
-        function prevSlide() {
+        window.prevSlide = function() {
             const prevIndex = (currentSlide - 1 + 6) % 6;
             goToSlide(prevIndex);
         }
 
         // 자동 슬라이드
         function startAutoSlide() {
-            slideInterval = setInterval(() => {
-                nextSlide();
-            }, 5000);
+            stopAutoSlide(); // 기존 인터벌 정리
+            slideInterval = setInterval(nextSlide, 5000);
         }
 
         function stopAutoSlide() {
@@ -813,41 +716,47 @@
                 clearInterval(slideInterval);
             }
         }
+        
+        // 초기화 및 이벤트 리스너 설정
+        function initializeApp() {
+            console.log('🚀 앱 초기화 시작');
+            showStatusMessage('connecting', '🔄 데이터베이스에 연결하는 중입니다...');
 
-        // 이벤트 리스너
-        document.addEventListener('click', function(e) {
-            const modal = document.getElementById('leaderboardModal');
-            if (e.target === modal) {
-                closeLeaderboard();
+            // Firestore 리스너 설정 시도
+            if (setupFirestoreListener()) {
+                 console.log('✅ Firebase 연결 성공!');
+                showStatusMessage('connected', '✅ 데이터베이스 연결 완료!');
+                setUIEnabled(true);
+                setTimeout(hideStatusMessage, 3000);
+            } else {
+                console.error('❌ Firebase 연결 실패');
+                showStatusMessage('error', '❌ 데이터베이스 연결에 실패했습니다.');
             }
-        });
 
-        document.addEventListener('keydown', function(e) {
-            if (document.getElementById('leaderboardModal').style.display === 'block') {
-                if (e.key === 'ArrowLeft') {
-                    prevSlide();
-                } else if (e.key === 'ArrowRight') {
-                    nextSlide();
-                } else if (e.key === 'Escape') {
+            // 폼 이벤트 리스너 설정
+            document.getElementById('scoreForm').addEventListener('submit', handleFormSubmit);
+
+            // 모달 외부 클릭 시 닫기
+            document.getElementById('leaderboardModal').addEventListener('click', function(e) {
+                if (e.target === this) {
                     closeLeaderboard();
                 }
-            }
-        });
+            });
 
-        // 앱 초기화
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('📄 DOM 로드 완료');
-            initializeApp();
-        });
+            // 키보드 이벤트
+            document.addEventListener('keydown', function(e) {
+                if (document.getElementById('leaderboardModal').style.display === 'block') {
+                    if (e.key === 'ArrowLeft') prevSlide();
+                    else if (e.key === 'ArrowRight') nextSlide();
+                    else if (e.key === 'Escape') closeLeaderboard();
+                }
+            });
+        }
 
-        window.addEventListener('load', () => {
-            console.log('🌐 페이지 로드 완료');
-            if (!firebaseConnected) {
-                initializeApp();
-            }
-        });
-
-        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다! (Firebase 전용)');
+        // DOM 로드 완료 후 앱 시작
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        console.log('🏆 수학 축전 리더보드 앱이 준비되었습니다!');
     </script>
 </body>
 </html>
+
