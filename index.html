@@ -42,7 +42,6 @@
             z-index: 1;
         }
 
-        /* 폼 배경 이미지 관련 스타일 제거 */
         form#scoreForm {
             position: relative;
         }
@@ -94,20 +93,20 @@
         
         .grade-button-group {
             display: flex;
-            flex-wrap: nowrap; /* 줄바꿈 방지 */
+            flex-wrap: nowrap;
             gap: 10px;
         }
         .grade-button-group button {
             flex-grow: 1;
-            flex-shrink: 1; /* 화면 작아질 때 버튼도 작아지도록 */
-            padding: 12px 5px; /* 좌우 패딩 감소 */
+            flex-shrink: 1;
+            padding: 12px 5px;
             font-size: 1.1em;
             background-color: #f5f5f5;
             border: 3px solid #ddd;
             border-radius: 12px;
             font-family: 'Noto Sans KR', sans-serif;
             font-weight: bold;
-            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+            white-space: nowrap;
         }
         .grade-button-group button:hover {
             background-color: #e0e0e0;
@@ -224,12 +223,20 @@
 
         .slides-container { position: relative; height: calc(100% - 80px); overflow: hidden; }
 
+        /* === ⭐️ 수정된 부분 시작 === */
         .slide {
-            display: none; height: 100%;
+            display: none; /* 평소엔 숨김 */
+            flex-direction: column; /* 자식 요소(제목, 리스트)를 세로로 쌓음 */
+            height: 100%;
             padding: 20px;
-            background: #E8F5E9; /* 연한 녹색 배경 */
+            background: #E8F5E9;
             position: relative;
         }
+        .slide.active { 
+            display: flex; /* 활성화될 때 flexbox 컨테이너로 보여줌 */
+        }
+        /* === ⭐️ 수정된 부분 끝 === */
+
         .slide-bg {
             position: absolute;
             bottom: -20px;
@@ -241,17 +248,19 @@
             pointer-events: none;
         }
 
-        .slide.active { display: block; }
         .grade-title { text-align: center; font-size: 2.5em; color: #388E3C; margin-bottom: 20px; }
 
+        /* === ⭐️ 수정된 부분 시작 === */
         .leaderboard {
-            max-height: calc(100% - 100px); overflow-y: auto;
-            /* === 수정된 부분 === */
+            flex: 1; /* 남은 공간을 모두 차지하도록 설정 */
+            min-height: 0; /* flex 자식 요소의 넘침 방지 */
+            overflow-y: auto; /* 내용이 많아지면 세로 스크롤 자동 생성 */
             display: grid;
-            grid-template-columns: 1fr; /* 항상 1열로 고정 */
+            grid-template-columns: 1fr;
             gap: 15px;
             padding: 0 15px 15px 15px;
         }
+        /* === ⭐️ 수정된 부분 끝 === */
 
         .rank-item {
             background: rgba(255,255,255,0.9); padding: 15px;
@@ -270,17 +279,16 @@
         .rank-3 { background: linear-gradient(135deg, #FFCCBC, #FFAB91); }
         
         .student-details {
-            /* === 수정된 부분 === */
             display: grid;
-            grid-template-columns: 1fr; /* 한 칸으로 변경 */
+            grid-template-columns: 1fr;
             gap: 5px;
             align-items: center;
             overflow: hidden;
         }
-        /* === 수정된 부분 === */
+
         .school-name, .student-name {
             font-weight: bold;
-            word-break: break-all; /* 긴 이름/학교명이 자동으로 줄바꿈되게 */
+            word-break: break-all;
         }
         
         .rank-number { font-size: 1.2em; font-weight: bold; text-align: center; }
@@ -308,7 +316,7 @@
                 gap: 5px;
             }
             .grade-button-group button {
-                font-size: clamp(0.7rem, 3.5vw, 0.9rem); /* 화면 너비에 따라 폰트 크기 자동 조절 */
+                font-size: clamp(0.7rem, 3.5vw, 0.9rem);
                 padding: 8px 4px;
             }
             .title {
@@ -489,9 +497,8 @@
         }
         
         window.showLeaderboard = function() {
-            updateAllLeaderboards(); // 데이터를 먼저 그리고
+            updateAllLeaderboards();
             if (activeGrades.length === 0) {
-                 // 데이터가 하나도 없어도 리더보드를 보여주되, 첫 화면은 1학년으로 고정
                 document.getElementById('slide-1').classList.add('active');
                 document.querySelector('.indicator').classList.add('active');
             } else {
@@ -725,3 +732,4 @@
     </script>
 </body>
 </html>
+
