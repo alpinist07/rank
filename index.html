@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>똑똑! 수학탐험대 리더보드 🏆</title>
-    <!-- Noto Sans KR 폰트 불러오기 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -18,7 +17,7 @@
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background-color: #F0F5FA;
-            background-image: 
+            background-image:
                 linear-gradient(rgba(255,255,255,.5) 2px, transparent 2px),
                 linear-gradient(90deg, rgba(255,255,255,.5) 2px, transparent 2px);
             background-size: 40px 40px;
@@ -247,8 +246,11 @@
 
         .leaderboard {
             max-height: calc(100% - 100px); overflow-y: auto;
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 15px; padding: 0 15px 15px 15px;
+            /* === 수정된 부분 === */
+            display: grid;
+            grid-template-columns: 1fr; /* 항상 1열로 고정 */
+            gap: 15px;
+            padding: 0 15px 15px 15px;
         }
 
         .rank-item {
@@ -267,8 +269,20 @@
         .rank-2 { background: linear-gradient(135deg, #F5F5F5, #E0E0E0); }
         .rank-3 { background: linear-gradient(135deg, #FFCCBC, #FFAB91); }
         
-        .student-details { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center; overflow: hidden; }
-        .school-name, .student-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+        .student-details {
+            /* === 수정된 부분 === */
+            display: grid;
+            grid-template-columns: 1fr; /* 한 칸으로 변경 */
+            gap: 5px;
+            align-items: center;
+            overflow: hidden;
+        }
+        /* === 수정된 부분 === */
+        .school-name, .student-name {
+            font-weight: bold;
+            word-break: break-all; /* 긴 이름/학교명이 자동으로 줄바꿈되게 */
+        }
+        
         .rank-number { font-size: 1.2em; font-weight: bold; text-align: center; }
         .medal { font-size: 1.5em; text-align: center; }
         .score { font-weight: bold; color: #D32F2F; justify-self: end; }
@@ -342,7 +356,6 @@
         </form>
     </div>
 
-    <!-- 리더보드 모달 -->
     <div id="leaderboardModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -359,7 +372,6 @@
         </div>
     </div>
     
-    <!-- 등수 확인, 비밀번호, 수정/삭제 팝업 모달들 -->
     <div id="rankResultModal" class="modal popup-modal"> <div class="modal-content"> <h2 id="rankResultMessage"></h2> <button id="closeRankResult" class="submit-btn">확인</button> </div> </div>
     <div id="passwordModal" class="modal popup-modal"> <div class="modal-content"> <form id="passwordForm"> <div class="form-group"> <label for="password">관리자 비밀번호</label> <input type="password" id="password" required> </div> <button type="submit" class="submit-btn">확인</button> </form> </div> </div>
     <div id="editModal" class="modal popup-modal"> <div class="modal-content"> <form id="editForm"> <h2 class="subtitle">기록 수정하기</h2> <div class="form-group"> <label for="editSchool">학교명</label> <input type="text" id="editSchool" required> </div> <div class="form-group"> <label for="editName">이름</label> <input type="text" id="editName" required> </div> <div class="form-group"> <label for="editScore">점수</label> <input type="number" id="editScore" required min="0"> </div> <div class="button-group"> <button type="submit" class="submit-btn">저장</button> <button type="button" id="deleteBtn" class="delete-btn">삭제</button> </div> </form> </div> </div>
@@ -713,4 +725,3 @@
     </script>
 </body>
 </html>
-
