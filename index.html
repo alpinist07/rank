@@ -26,8 +26,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            /* === ⭐️ 1번 수정: 이 속성이 전체 페이지 스크롤을 막고 있었습니다. === */
-            /* overflow: hidden; */
         }
 
         .container {
@@ -222,18 +220,41 @@
         .close-btn { top: 15px; right: 20px; }
         .toggle-slide-btn:hover, .close-btn:hover { background: rgba(255,255,255,0.3); }
 
-        .slides-container { position: relative; height: calc(100% - 80px); overflow: hidden; }
+        /* === 수정: 내용이 많을 때 스크롤이 나타나도록 overflow 속성 변경 === */
+        .slides-container { 
+            position: relative; 
+            height: calc(100% - 80px); 
+            overflow-y: auto; 
+        }
+
+        /* === 추가: .slides-container에 대한 스크롤바 스타일 === */
+        .slides-container::-webkit-scrollbar {
+            width: 10px;
+        }
+        .slides-container::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 5px;
+        }
+        .slides-container::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 5px;
+        }
+        .slides-container::-webkit-scrollbar-thumb:hover {
+            background: #388E3C;
+        }
 
         .slide {
             display: none;
-            flex-direction: column;
-            height: 100%;
+            /* === 삭제: flex 레이아웃 및 고정 높이 제거 === */
+            /* flex-direction: column; */
+            /* height: 100%; */
             padding: 20px;
             background: #E8F5E9;
             position: relative;
         }
         .slide.active { 
-            display: flex;
+            /* === 수정: flex 대신 block으로 변경하여 내용에 따라 높이가 늘어나게 함 === */
+            display: block;
         }
 
         .slide-bg {
@@ -250,29 +271,18 @@
         .grade-title { text-align: center; font-size: 2.5em; color: #388E3C; margin-bottom: 20px; }
 
         .leaderboard {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
+            /* === 삭제: flex 관련 속성 및 스크롤 속성 제거 === */
+            /* flex: 1; */
+            /* min-height: 0; */
+            /* overflow-y: auto; */
             display: grid;
             grid-template-columns: 1fr;
             gap: 15px;
             padding: 0 15px 15px 15px;
         }
 
-        .leaderboard::-webkit-scrollbar {
-            width: 10px;
-        }
-        .leaderboard::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05);
-            border-radius: 5px;
-        }
-        .leaderboard::-webkit-scrollbar-thumb {
-            background: #4CAF50;
-            border-radius: 5px;
-        }
-        .leaderboard::-webkit-scrollbar-thumb:hover {
-            background: #388E3C;
-        }
+        /* === 삭제: 스크롤바 스타일을 .slides-container로 이동했으므로 제거 === */
+        /* .leaderboard::-webkit-scrollbar { ... } */
 
         .rank-item {
             background: rgba(255,255,255,0.9); padding: 15px;
@@ -419,7 +429,6 @@
         let currentSlide = 0;
         let slideInterval;
         let isAutoSlideRunning = false;
-        // === ⭐️ 2번 수정: 터치 좌표 변수 추가 ===
         let touchStartX = 0, touchEndX = 0, touchStartY = 0, touchEndY = 0;
         const CUTE_EMOJIS = ['😊', '👍', '🌸', '🎈', '🎁', '☀️', '🐶', '🍀'];
         const CHAR_IMAGES = {
@@ -732,7 +741,6 @@
                 }
             });
             
-            // === ⭐️ 2번 수정: 터치 스와이프 로직 개선 ===
             allElements.slidesContainer.addEventListener('touchstart', (e) => {
                 touchStartX = e.changedTouches[0].screenX;
                 touchStartY = e.changedTouches[0].screenY;
@@ -745,14 +753,13 @@
                 const swipeDistanceX = touchEndX - touchStartX;
                 const swipeDistanceY = touchEndY - touchStartY;
 
-                // 가로 스와이프 거리가 세로 스크롤 거리보다 클 때만 슬라이드 넘김으로 인식
                 if (Math.abs(swipeDistanceX) > Math.abs(swipeDistanceY)) {
-                    if (swipeDistanceX > 50) { // 오른쪽으로 스와이프
+                    if (swipeDistanceX > 50) {
                         prevSlide();
-                    } else if (swipeDistanceX < -50) { // 왼쪽으로 스와이프
+                    } else if (swipeDistanceX < -50) {
                         nextSlide();
                     }
-                    startAutoSlide(); // 스와이프 후 자동 슬라이드 재시작
+                    startAutoSlide();
                 }
             });
 
