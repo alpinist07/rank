@@ -223,20 +223,14 @@
 
         .slides-container { position: relative; height: calc(100% - 80px); overflow: hidden; }
 
-        /* === ⭐️ 수정된 부분 시작 === */
         .slide {
-            display: none; /* 평소엔 숨김 */
-            flex-direction: column; /* 자식 요소(제목, 리스트)를 세로로 쌓음 */
+            display: none;
+            flex-direction: column;
             height: 100%;
             padding: 20px;
             background: #E8F5E9;
             position: relative;
         }
-        .slide.active { 
-            display: flex; /* 활성화될 때 flexbox 컨테이너로 보여줌 */
-        }
-        /* === ⭐️ 수정된 부분 끝 === */
-
         .slide-bg {
             position: absolute;
             bottom: -20px;
@@ -248,19 +242,18 @@
             pointer-events: none;
         }
 
+        .slide.active { display: flex; }
         .grade-title { text-align: center; font-size: 2.5em; color: #388E3C; margin-bottom: 20px; }
 
-        /* === ⭐️ 수정된 부분 시작 === */
         .leaderboard {
-            flex: 1; /* 남은 공간을 모두 차지하도록 설정 */
-            min-height: 0; /* flex 자식 요소의 넘침 방지 */
-            overflow-y: auto; /* 내용이 많아지면 세로 스크롤 자동 생성 */
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
             display: grid;
             grid-template-columns: 1fr;
             gap: 15px;
             padding: 0 15px 15px 15px;
         }
-        /* === ⭐️ 수정된 부분 끝 === */
 
         .rank-item {
             background: rgba(255,255,255,0.9); padding: 15px;
@@ -285,7 +278,6 @@
             align-items: center;
             overflow: hidden;
         }
-
         .school-name, .student-name {
             font-weight: bold;
             word-break: break-all;
@@ -732,4 +724,3 @@
     </script>
 </body>
 </html>
-
