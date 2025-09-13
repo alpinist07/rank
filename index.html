@@ -231,6 +231,10 @@
             background: #E8F5E9;
             position: relative;
         }
+        .slide.active { 
+            display: flex;
+        }
+
         .slide-bg {
             position: absolute;
             bottom: -20px;
@@ -242,7 +246,6 @@
             pointer-events: none;
         }
 
-        .slide.active { display: flex; }
         .grade-title { text-align: center; font-size: 2.5em; color: #388E3C; margin-bottom: 20px; }
 
         .leaderboard {
@@ -254,6 +257,24 @@
             gap: 15px;
             padding: 0 15px 15px 15px;
         }
+
+        /* === ⭐️ 1번 수정: 스크롤바 스타일 추가 시작 === */
+        .leaderboard::-webkit-scrollbar {
+            width: 10px; /* 스크롤바 너비 */
+        }
+        .leaderboard::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05); /* 스크롤바 배경 */
+            border-radius: 5px;
+        }
+        .leaderboard::-webkit-scrollbar-thumb {
+            background: #4CAF50; /* 스크롤바 색상 */
+            border-radius: 5px;
+        }
+        .leaderboard::-webkit-scrollbar-thumb:hover {
+            background: #388E3C; /* 마우스 올렸을 때 색상 */
+        }
+        /* === ⭐️ 1번 수정: 스크롤바 스타일 추가 끝 === */
+
 
         .rank-item {
             background: rgba(255,255,255,0.9); padding: 15px;
@@ -278,6 +299,7 @@
             align-items: center;
             overflow: hidden;
         }
+
         .school-name, .student-name {
             font-weight: bold;
             word-break: break-all;
@@ -528,10 +550,13 @@
                 slide.id = `slide-${grade}`;
                 
                 let charImageSrc = '';
-                if (grade >= 1 && grade <= 2) charImageSrc = CHAR_IMAGES['1-2'][index % CHAR_IMAGES['1-2'].length];
-                else if (grade >= 3 && grade <= 4) charImageSrc = CHAR_IMAGES['3-4'][index % CHAR_IMAGES['3-4'].length];
-                else if (grade >= 5 && grade <= 6) charImageSrc = CHAR_IMAGES['5-6'][index % CHAR_IMAGES['5-6'].length];
-                
+                // === ⭐️ 2번 수정: grade를 숫자로 변환하여 비교 시작 ===
+                const numericGrade = parseInt(grade, 10);
+                if (numericGrade >= 1 && numericGrade <= 2) charImageSrc = CHAR_IMAGES['1-2'][index % CHAR_IMAGES['1-2'].length];
+                else if (numericGrade >= 3 && numericGrade <= 4) charImageSrc = CHAR_IMAGES['3-4'][index % CHAR_IMAGES['3-4'].length];
+                else if (numericGrade >= 5 && numericGrade <= 6) charImageSrc = CHAR_IMAGES['5-6'][index % CHAR_IMAGES['5-6'].length];
+                // === ⭐️ 2번 수정: grade를 숫자로 변환하여 비교 끝 ===
+
                 slide.innerHTML = `
                     <h3 class="grade-title">${gradeText} 랭킹</h3>
                     <div class="leaderboard" id="leaderboard-${grade}"></div>
