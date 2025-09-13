@@ -26,7 +26,8 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            overflow: hidden;
+            /* === ⭐️ 1번 수정: 이 속성이 전체 페이지 스크롤을 막고 있었습니다. === */
+            /* overflow: hidden; */
         }
 
         .container {
@@ -258,23 +259,20 @@
             padding: 0 15px 15px 15px;
         }
 
-        /* === ⭐️ 1번 수정: 스크롤바 스타일 추가 시작 === */
         .leaderboard::-webkit-scrollbar {
-            width: 10px; /* 스크롤바 너비 */
+            width: 10px;
         }
         .leaderboard::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05); /* 스크롤바 배경 */
+            background: rgba(0,0,0,0.05);
             border-radius: 5px;
         }
         .leaderboard::-webkit-scrollbar-thumb {
-            background: #4CAF50; /* 스크롤바 색상 */
+            background: #4CAF50;
             border-radius: 5px;
         }
         .leaderboard::-webkit-scrollbar-thumb:hover {
-            background: #388E3C; /* 마우스 올렸을 때 색상 */
+            background: #388E3C;
         }
-        /* === ⭐️ 1번 수정: 스크롤바 스타일 추가 끝 === */
-
 
         .rank-item {
             background: rgba(255,255,255,0.9); padding: 15px;
@@ -421,7 +419,8 @@
         let currentSlide = 0;
         let slideInterval;
         let isAutoSlideRunning = false;
-        let touchStartX = 0, touchEndX = 0;
+        // === ⭐️ 2번 수정: 터치 좌표 변수 추가 ===
+        let touchStartX = 0, touchEndX = 0, touchStartY = 0, touchEndY = 0;
         const CUTE_EMOJIS = ['😊', '👍', '🌸', '🎈', '🎁', '☀️', '🐶', '🍀'];
         const CHAR_IMAGES = {
             '1-2': ['1-2학년_아리.png', '1-2학년_수리.png'],
@@ -543,19 +542,17 @@
 
             const gradesToDisplay = activeGrades.length > 0 ? activeGrades : ['1'];
 
-            ALL_GRADES.forEach((grade, index) => {
+            gradesToDisplay.forEach((grade, index) => {
                 const gradeText = grade === '0' ? '기타' : `${grade}학년`;
                 const slide = document.createElement('div');
                 slide.className = 'slide';
                 slide.id = `slide-${grade}`;
                 
                 let charImageSrc = '';
-                // === ⭐️ 2번 수정: grade를 숫자로 변환하여 비교 시작 ===
                 const numericGrade = parseInt(grade, 10);
                 if (numericGrade >= 1 && numericGrade <= 2) charImageSrc = CHAR_IMAGES['1-2'][index % CHAR_IMAGES['1-2'].length];
                 else if (numericGrade >= 3 && numericGrade <= 4) charImageSrc = CHAR_IMAGES['3-4'][index % CHAR_IMAGES['3-4'].length];
                 else if (numericGrade >= 5 && numericGrade <= 6) charImageSrc = CHAR_IMAGES['5-6'][index % CHAR_IMAGES['5-6'].length];
-                // === ⭐️ 2번 수정: grade를 숫자로 변환하여 비교 끝 ===
 
                 slide.innerHTML = `
                     <h3 class="grade-title">${gradeText} 랭킹</h3>
@@ -611,22 +608,28 @@
         }
         
         window.goToSlide = function(index) {
-            currentSlide = index;
-            const gradesForSlider = activeGrades.length > 0 ? activeGrades : ALL_GRADES;
+            const gradesForSlider = activeGrades.length > 0 ? activeGrades : [];
+            if(gradesForSlider.length === 0) return;
 
+            currentSlide = index;
+            
             document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.indicator').forEach(i => i.classList.remove('active'));
             
-            document.getElementById(`slide-${gradesForSlider[currentSlide]}`).classList.add('active');
-            document.querySelectorAll('.indicator')[currentSlide].classList.add('active');
+            const activeSlideId = `slide-${gradesForSlider[currentSlide]}`;
+            const activeSlide = document.getElementById(activeSlideId);
+            if (activeSlide) activeSlide.classList.add('active');
+
+            const activeIndicator = document.querySelectorAll('.indicator')[currentSlide];
+            if (activeIndicator) activeIndicator.classList.add('active');
         }
 
         window.nextSlide = function() { 
-            const totalSlides = activeGrades.length > 0 ? activeGrades.length : ALL_GRADES.length;
+            const totalSlides = activeGrades.length > 0 ? activeGrades.length : 1;
             goToSlide((currentSlide + 1) % totalSlides); 
         }
         window.prevSlide = function() { 
-            const totalSlides = activeGrades.length > 0 ? activeGrades.length : ALL_GRADES.length;
+            const totalSlides = activeGrades.length > 0 ? activeGrades.length : 1;
             goToSlide((currentSlide - 1 + totalSlides) % totalSlides); 
         }
 
@@ -729,12 +732,28 @@
                 }
             });
             
-            allElements.slidesContainer.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+            // === ⭐️ 2번 수정: 터치 스와이프 로직 개선 ===
+            allElements.slidesContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+
             allElements.slidesContainer.addEventListener('touchend', (e) => {
                 touchEndX = e.changedTouches[0].screenX;
-                const swipeDistance = touchEndX - touchStartX;
-                if (swipeDistance > 50) prevSlide(); else if (swipeDistance < -50) nextSlide();
-                startAutoSlide();
+                touchEndY = e.changedTouches[0].screenY;
+
+                const swipeDistanceX = touchEndX - touchStartX;
+                const swipeDistanceY = touchEndY - touchStartY;
+
+                // 가로 스와이프 거리가 세로 스크롤 거리보다 클 때만 슬라이드 넘김으로 인식
+                if (Math.abs(swipeDistanceX) > Math.abs(swipeDistanceY)) {
+                    if (swipeDistanceX > 50) { // 오른쪽으로 스와이프
+                        prevSlide();
+                    } else if (swipeDistanceX < -50) { // 왼쪽으로 스와이프
+                        nextSlide();
+                    }
+                    startAutoSlide(); // 스와이프 후 자동 슬라이드 재시작
+                }
             });
 
             document.addEventListener('keydown', (e) => {
